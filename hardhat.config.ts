@@ -5,6 +5,7 @@ import "hardhat-deploy";
 import dotenv from "dotenv";
 import type { HttpNetworkUserConfig } from "hardhat/types";
 import yargs from "yargs";
+import "./src/tasks/setup";
 
 const argv = yargs
   .option("network", {

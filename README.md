@@ -14,14 +14,13 @@ A transaction guard that allows the owner to limit a Gnosis Safe's multisig owne
 ### Flow
 
 - Deploy ScopeGuard
-- Enqueue transactions by calling `execTransactionFromModule()`
-- Wait for cooldown ⏱️
-- Anyone can execute the next transaction by calling `executeNextTx`
+- Allow addresses and function calls that the Safe multisig signers should be able to call
+- Enable the txguard in the Safe
 
 ### Solidity Compiler
 
-The contracts have been developed with [Solidity 0.8.0](https://github.com/ethereum/solidity/releases/tag/v0.8.0) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
+The contracts have been developed with [Solidity 0.8.6](https://github.com/ethereum/solidity/releases/tag/v0.8.6) in mind. This version of Solidity made all arithmetic checked by default, therefore eliminating the need for explicit overflow or underflow (or other arithmetic) checks.
 
 ### Setup Guide
 
-Follow our [ScopeGuard Setup Guide](./docs/setup_guide.md) to setup and use a DelayModule.
+Follow our [ScopeGuard Setup Guide](./docs/setup_guide.md) to setup and use a ScopeGuard.
