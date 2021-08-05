@@ -1,9 +1,6 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
-import { Contract } from "ethers";
-
-const FIRST_ADDRESS = "0x0000000000000000000000000000000000000001";
 
 task("setup", "Deploys a ScopeGuard").setAction(
   async (taskArgs, hardhatRuntime) => {

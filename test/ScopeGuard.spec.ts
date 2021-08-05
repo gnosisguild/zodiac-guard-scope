@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import hre, { deployments, waffle, ethers } from "hardhat";
+import { deployments, waffle, ethers } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { AddressZero } from "@ethersproject/constants";
 import { getSafeWithOwners } from "@gnosis.pm/safe-contracts/test/utils/setup";
@@ -9,7 +9,6 @@ import {
   executeTxWithSigners,
   buildSafeTransaction,
 } from "@gnosis.pm/safe-contracts/src/utils/execution";
-import { AddressOne } from "@gnosis.pm/safe-contracts/src/utils/constants";
 
 describe("ScopeGuard", async () => {
   const [user1, user2] = waffle.provider.getWallets();
@@ -17,7 +16,7 @@ describe("ScopeGuard", async () => {
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
     const safe = await getSafeWithOwners([user1.address]);
-    const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
+    const guardFactory = await ethers.getContractFactory("ScopeGuard");
     const guard = await guardFactory.deploy();
     await guard.allowTarget(guard.address);
     await guard.allowFunction(
@@ -162,7 +161,7 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("caller is not the owner");
     });
 
-    it("should allowe a target", async () => {
+    it("should allow a target", async () => {
       const { safe, guard } = await setupTests();
       await expect(await guard.isAllowedTarget(safe.address)).to.be.equals(
         false
@@ -181,7 +180,7 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("disalowTarget", async () => {
+  describe("disallowTarget", async () => {
     it("should revert if caller is not owner", async () => {
       const { safe, guard } = await setupTests();
       await expect(
@@ -255,7 +254,7 @@ describe("ScopeGuard", async () => {
       ).to.be.equals(false);
     });
 
-    it("should emit DelegateCallsDisllowedOnTarget(target)", async () => {
+    it("should emit DelegateCallsDisallowedOnTarget(target)", async () => {
       const { safe, guard } = await setupTests();
       await guard.allowDelegateCall(safe.address);
       await expect(guard.disallowDelegateCall(safe.address))
@@ -283,7 +282,7 @@ describe("ScopeGuard", async () => {
       ).to.be.equals(true);
     });
 
-    it("should emit FunctionAllowedOnTargetarget(address, sig)", async () => {
+    it("should emit FunctionAllowedOnTarget(address, sig)", async () => {
       const { safe, guard } = await setupTests();
       await expect(guard.allowFunction(safe.address, "0x12345678"))
         .to.emit(guard, "FunctionAllowedOnTarget")
