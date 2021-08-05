@@ -1,6 +1,4 @@
-# Scope Transaction Guard
-
-# Scope Transaction Guard
+# ScopeGuard
 
 [![Build Status](https://github.com/gnosis/ScopeGuard/workflows/ScopeGuard/badge.svg?branch=main)](https://github.com/gnosis/ScopeGuard/actions)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/ScopeGuard/badge.svg?branch=main)](https://coveralls.io/github/gnosis/ScopeGuard)
