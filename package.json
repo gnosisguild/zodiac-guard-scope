@@ -1,5 +1,5 @@
 {
-  "name": "@gnosis/ScopeTransactionGuard",
+  "name": "@gnosis/ScopeGuard",
   "version": "0.0.0",
   "description": "A transaction guard that allows the owner to limit the multisig signers to calling specific function signatures on specific contracts.",
   "author": "Auryn Macmillan <auryn.macmillan@gnosis.io>",

@@ -11,15 +11,13 @@ import {
 } from "@gnosis.pm/safe-contracts/src/utils/execution";
 import { AddressOne } from "@gnosis.pm/safe-contracts/src/utils/constants";
 
-describe("ScopeTransactionGuard", async () => {
+describe("ScopeGuard", async () => {
   const [user1, user2] = waffle.provider.getWallets();
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
     const safe = await getSafeWithOwners([user1.address]);
-    const guardFactory = await hre.ethers.getContractFactory(
-      "ScopeTransactionGuard"
-    );
+    const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
     const guard = await guardFactory.deploy();
     await guard.allowTarget(guard.address);
     await guard.allowFunction(

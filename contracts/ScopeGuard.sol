@@ -20,7 +20,7 @@ abstract contract BaseGuard is Guard {
     }
 }
 
-contract ScopeTransactionGuard is BaseGuard, Ownable {
+contract ScopeGuard is BaseGuard, Ownable {
     event TargetAllowed(address target);
     event TargetDisallowed(address target);
     event TargetScopeSet(address target, bool scoped);
