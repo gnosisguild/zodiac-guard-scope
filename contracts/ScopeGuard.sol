@@ -23,7 +23,7 @@ abstract contract BaseGuard is Guard {
 contract ScopeGuard is BaseGuard, Ownable {
     event TargetAllowed(address target);
     event TargetDisallowed(address target);
-    event TargetScopeSet(address target, bool scoped);
+    event TargetScoped(address target, bool scoped);
     event DelegateCallsAllowedOnTarget(address target);
     event DelegateCallsDisallowedOnTarget(address target);
     event FunctionAllowedOnTarget(address target, bytes4 functionSig);
@@ -73,10 +73,9 @@ contract ScopeGuard is BaseGuard, Ownable {
     /// @dev Sets whether or not calls to an address should be scoped to specific function signatures.
     /// @notice Only callable by owner.
     /// @param target Address that will be scoped/unscoped.
-    /// @param scoped Boolean for whether or not the target address should be scoped.
-    function setScoped(address target, bool scoped) public onlyOwner {
-        allowedTargets[target].scoped = scoped;
-        emit TargetScopeSet(target, scoped);
+    function toggleScoped(address target) public onlyOwner {
+        allowedTargets[target].scoped = !allowedTargets[target].scoped;
+        emit TargetScoped(target, allowedTargets[target].scoped);
     }
 
     function allowFunction(address target, bytes4 functionSig)
