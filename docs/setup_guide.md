@@ -43,6 +43,12 @@ yarn hardhat setup --network rinkeby
 
 This will return the address of the ScopeGuard you deployed, with the owner set to the private key you used to deploy the ScopeGuard.
 
+Now you can verify the contract on Etherscan.
+
+```bash
+yarn hardhat verifyEtherscan --network rinkeby --guard <scope_guard_address>
+```
+
 ### Setting up the ScopeGuard
 
 ⚠️ Warning, this step is critical to ensure that you do not brick your Safe.
@@ -65,9 +71,19 @@ To limit the scope of an address to specific function signatures, you must toggl
 yarn hardhat toggleScoped --network rinkeby --guard <scope_guard_address> --target <target_address>
 ```
 
+You can use this utitly to generate the function signature for specific functions.
+
+```bash
+yarn hardhat getFunctionSignature --function <escaped_function_sighash>
+```
+
+Then set allow the specific function signature.
+
 ```bash
 yarn hardhat allowFunction --network rinkeby --guard <scope_guard_address> --target <target_address> --sig <function_signature>
 ```
+
+An exampe of an escaped function sighash is `balanceOf\(address\)`.
 
 #### Allow delegate calls to an addresses
 

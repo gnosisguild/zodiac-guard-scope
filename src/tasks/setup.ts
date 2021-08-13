@@ -17,10 +17,10 @@ task("setup", "Deploys a ScopeGuard").setAction(
 );
 
 task("verifyEtherscan", "Verifies the contract on etherscan")
-  .addParam("scopeguard", "Address of the ScopeGuard", undefined, types.string)
+  .addParam("guard", "Address of the ScopeGuard", undefined, types.string)
   .setAction(async (taskArgs, hardhatRuntime) => {
     await hardhatRuntime.run("verify", {
-      address: taskArgs.scopeguard,
+      address: taskArgs.guard,
     });
   });
 
@@ -46,7 +46,7 @@ task("allowTarget", "Allows a target address.")
     );
     await guard.allowTarget(taskArgs.target);
 
-    console.log("Target allowed: ", guard.address);
+    console.log("Target allowed: ", taskArgs.target);
   });
 
 task("disallowTarget", "Disallows a target address.")
@@ -71,7 +71,7 @@ task("disallowTarget", "Disallows a target address.")
     );
     await guard.disallowTarget(taskArgs.target);
 
-    console.log("Target disallowed: ", guard.address);
+    console.log("Target disallowed: ", taskArgs.target);
   });
 
 task("allowDelegateCall", "Allows delegate calls to an allowed target address.")
@@ -96,7 +96,7 @@ task("allowDelegateCall", "Allows delegate calls to an allowed target address.")
     );
     await guard.allowDelegateCall(taskArgs.target);
 
-    console.log("Delegate calls allowed to: ", guard.address);
+    console.log("Delegate calls allowed to: ", taskArgs.target);
   });
 
 task(
@@ -124,7 +124,7 @@ task(
     );
     await guard.disallowDelegateCall(taskArgs.target);
 
-    console.log("Delegate calls disallowed to: ", guard.address);
+    console.log("Delegate calls disallowed to: ", taskArgs.target);
   });
 
 task(
@@ -150,13 +150,14 @@ task(
       "ScopeGuard",
       taskArgs.guard
     );
-    await guard.toggleScoped(taskArgs.target);
+    let tx = await guard.toggleScoped(taskArgs.target);
+    let receipt = await tx.wait();
 
     console.log(
-      "Scoped set to ",
-      await guard.isScoped(),
-      " for target address ",
-      guard.address
+      "Scoped set to",
+      await guard.isScoped(taskArgs.target),
+      "for target address",
+      taskArgs.target
     );
   });
 
@@ -192,10 +193,10 @@ task(
     await guard.allowFunction(taskArgs.target, taskArgs.sig);
 
     console.log(
-      "Function signature ",
+      "Function signature",
       taskArgs.sig,
-      " allowed for ",
-      guard.address
+      "allowed for",
+      taskArgs.target
     );
   });
 
@@ -228,13 +229,13 @@ task(
       "ScopeGuard",
       taskArgs.guard
     );
-    await guard.allowFunction(taskArgs.target, taskArgs.sig);
+    await guard.disallowFunction(taskArgs.target, taskArgs.sig);
 
     console.log(
-      "Function signature ",
+      "Function signature",
       taskArgs.sig,
-      " disallowed for ",
-      guard.address
+      "disallowed for",
+      taskArgs.target
     );
   });
 
@@ -264,6 +265,24 @@ task(
     await guard.transferOwnership(taskArgs.target);
 
     console.log("ScopeGuard now owned by: ", await guard.owner());
+  });
+
+task(
+  "getFunctionSignature",
+  "Returns the four-byte function signature of a given string. e.g. balanceOf\\(address\\)."
+)
+  .addParam(
+    "function",
+    "The string representation of the function selector. For example, balanceOf\\(address\\).",
+    undefined,
+    types.string
+  )
+  .setAction(async (taskArgs, hardhatRuntime) => {
+    console.log(
+      hardhatRuntime.ethers.utils
+        .solidityKeccak256(["string"], [taskArgs.function])
+        .substring(0, 10)
+    );
   });
 
 export {};
