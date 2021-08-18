@@ -155,6 +155,7 @@ contract ScopeGuard is BaseGuard, Ownable {
         bytes memory,
         address
     ) external view override {
+        bool scoped = allowedTargets[to].scoped;
         require(
             operation != Enum.Operation.DelegateCall ||
                 allowedTargets[to].delegateCallAllowed,
@@ -163,14 +164,12 @@ contract ScopeGuard is BaseGuard, Ownable {
         require(isAllowedTarget(to), "Target address is not allowed");
         if (data.length >= 4) {
             require(
-                !allowedTargets[to].scoped ||
-                    isAllowedFunction(to, bytes4(data)),
+                !scoped || isAllowedFunction(to, bytes4(data)),
                 "Target function is not allowed"
             );
-        }
-        if (data.length < 4) {
+        } else {
             require(
-                !allowedTargets[to].scoped || isAllowedFunction(to, bytes4(0)),
+                !scoped || isAllowedFunction(to, bytes4(0)),
                 "Cannot send to this address"
             );
         }
