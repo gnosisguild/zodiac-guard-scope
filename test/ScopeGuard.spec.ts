@@ -11,7 +11,8 @@ describe("ScopeGuard", async () => {
     const executorFactory = await hre.ethers.getContractFactory("TestExecutor");
     const safe = await executorFactory.deploy();
     const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
-    const guard = await guardFactory.deploy();
+    const guard = await guardFactory.deploy(AddressZero, AddressZero);
+    await guard.setUp(user1.address, user1.address);
     await safe.enableModule(user1.address);
     await safe.setGuard(guard.address);
     const tx = {
@@ -31,6 +32,27 @@ describe("ScopeGuard", async () => {
       guard,
       tx,
     };
+  });
+
+  describe("setUp", async () => {
+    it("throws if guard has already been initialized", async () => {
+      const { guard } = await setupTests();
+      await expect(guard.setUp(user1.address, user1.address)).to.be.revertedWith(
+        "Guard is already initialized"
+      );
+    });
+
+    it("should emit event because of successful set up", async () => {
+      const Guard = await hre.ethers.getContractFactory("ScopeGuard");
+      const guard = await Guard.deploy(AddressZero, AddressZero);
+      const setupTx = await guard.setUp(user1.address, user1.address);
+      const transaction = await setupTx.wait();
+
+      const [initiator, safe] = transaction.events[2].args;
+
+      expect(safe).to.be.equal(user1.address);
+      expect(initiator).to.be.equal(user1.address);
+    });
   });
 
   describe("fallback", async () => {
