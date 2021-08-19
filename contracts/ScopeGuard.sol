@@ -4,7 +4,8 @@ pragma solidity ^0.8.6;
 import "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
-import "@gnosis/zodiac/contracts/core/Module.sol";
+import "@gnosis/zodiac/contracts/core/FactoryFriendly.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 abstract contract BaseGuard is Guard {
     function supportsInterface(bytes4 interfaceId)
@@ -19,7 +20,7 @@ abstract contract BaseGuard is Guard {
     }
 }
 
-contract ScopeGuard is Module, BaseGuard {
+contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     event TargetAllowed(address target);
     event TargetDisallowed(address target);
     event TargetScoped(address target, bool scoped);
@@ -27,25 +28,25 @@ contract ScopeGuard is Module, BaseGuard {
     event DelegateCallsDisallowedOnTarget(address target);
     event FunctionAllowedOnTarget(address target, bytes4 functionSig);
     event FunctionDisallowedOnTarget(address target, bytes4 functionSig);
-    event ScopeGuardSetup(address indexed initiator, address indexed safe);
+    event ScopeGuardSetup(address indexed initiator, address indexed owner);
 
-    constructor(address _owner, address _executor) {
-        setUp(_owner, _executor);
+    constructor(address _owner) {
+        bytes memory initializeParams = abi.encode(_owner);
+        setUp(initializeParams);
     }
 
     /// @dev Initialize function, will be triggered when a new proxy is deployed
-    /// @param _owner Address of the owner
-    /// @param _executor Address of the executor (e.g. a Safe or Delay Module)
-    function setUp(address _owner, address _executor) public {
-        require(executor == address(0), "Guard is already initialized");
-        executor = _executor;
+    /// @param initializeParams Parameters of initialization encoded
+    function setUp(bytes memory initializeParams) public override {
+        require(!initialized, "Guard is already initialized");
+        address _owner = abi.decode(initializeParams, (address));
 
-        if (_executor != address(0)) {
+        if (_owner != address(0)) {
             __Ownable_init();
             transferOwnership(_owner);
+            initialized = true;
+            emit ScopeGuardSetup(msg.sender, _owner);
         }
-
-        emit ScopeGuardSetup(msg.sender, _executor);
     }
 
     struct Target {

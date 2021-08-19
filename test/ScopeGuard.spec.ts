@@ -5,14 +5,16 @@ import { AddressZero } from "@ethersproject/constants";
 
 describe("ScopeGuard", async () => {
   const [user1, user2] = waffle.provider.getWallets();
+  const abiCoder = new ethers.utils.AbiCoder();
+  const initializeParams = abiCoder.encode(["address"], [user1.address]);
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
     const executorFactory = await hre.ethers.getContractFactory("TestExecutor");
     const safe = await executorFactory.deploy();
     const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
-    const guard = await guardFactory.deploy(AddressZero, AddressZero);
-    await guard.setUp(user1.address, user1.address);
+    const guard = await guardFactory.deploy(AddressZero);
+    await guard.setUp(initializeParams);
     await safe.enableModule(user1.address);
     await safe.setGuard(guard.address);
     const tx = {
@@ -37,20 +39,20 @@ describe("ScopeGuard", async () => {
   describe("setUp", async () => {
     it("throws if guard has already been initialized", async () => {
       const { guard } = await setupTests();
-      await expect(guard.setUp(user1.address, user1.address)).to.be.revertedWith(
+      await expect(guard.setUp(initializeParams)).to.be.revertedWith(
         "Guard is already initialized"
       );
     });
 
     it("should emit event because of successful set up", async () => {
       const Guard = await hre.ethers.getContractFactory("ScopeGuard");
-      const guard = await Guard.deploy(AddressZero, AddressZero);
-      const setupTx = await guard.setUp(user1.address, user1.address);
+      const guard = await Guard.deploy(AddressZero);
+      const setupTx = await guard.setUp(initializeParams);
       const transaction = await setupTx.wait();
 
-      const [initiator, safe] = transaction.events[2].args;
+      const [initiator, owner] = transaction.events[2].args;
 
-      expect(safe).to.be.equal(user1.address);
+      expect(owner).to.be.equal(user1.address);
       expect(initiator).to.be.equal(user1.address);
     });
   });
