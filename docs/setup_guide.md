@@ -4,14 +4,14 @@ This guide shows how to setup a ScopeGuard with a Gnosis Safe on the Rinkeby tes
 
 _Note: transaction guards only work with safes on version 1.3.0 or greater._
 
-## ⚠️ Warning ⚠️
+## Warning ⚠️
 
 Enabling a ScopeGuard can brick your Safe, making it unusable and rendering any funds inaccessible.
 Once enabled on your Safe, your ScopeGuard will revert any transactions to addresses or functions that have not been explicitly allowed.
 
 Before you enable your ScopeGuard, please make sure you have setup the ScopeGuard fully to enable each of the addresses and functions you wish the multisig owners to be able to call.
 
-Best practice is to enable another account that you control as a module to your Safe before enabling your ScopeGuard. Once you are confident the ScopeGuard is setup and functioning as intended
+Best practice is to enable another account that you control as a module to your Safe before enabling your ScopeGuard.
 
 ## Prerequisites
 
