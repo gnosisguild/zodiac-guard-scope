@@ -1,4 +1,4 @@
-name: scopeguard
+name: ScopeGuard
 on: [push]
 
 jobs:
