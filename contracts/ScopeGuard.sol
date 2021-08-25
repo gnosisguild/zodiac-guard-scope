@@ -45,8 +45,9 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
             __Ownable_init();
             transferOwnership(_owner);
             initialized = true;
-            emit ScopeGuardSetup(msg.sender, _owner);
         }
+        
+        emit ScopeGuardSetup(msg.sender, _owner);
     }
 
     struct Target {
