@@ -55,6 +55,7 @@ task("deployMasterCopy", "deploy a master copy of ScopeGuard").setAction(
 
     await module.deployTransaction.wait(3);
 
+
     console.log("Module deployed to:", module.address);
     await hardhatRuntime.run("verify:verify", {
       address: module.address,
@@ -67,9 +68,10 @@ task("verifyEtherscan", "Verifies the contract on etherscan")
   .addParam("guard", "Address of the ScopeGuard", undefined, types.string)
   .addParam("owner", "Address of the Owner", undefined, types.string)
   .setAction(async (taskArgs, hardhatRuntime) => {
+    const [caller] = await hardhatRuntime.ethers.getSigners();
     await hardhatRuntime.run("verify", {
       address: taskArgs.guard,
-      constructorArguments: taskArgs.owner,
+      constructorArguments: [taskArgs.owner],
     });
   });
 
@@ -299,7 +301,7 @@ task(
     types.string
   )
   .addParam(
-    "newOwner",
+    "newowner",
     "The address that will be the new owner of the gaurd.",
     undefined,
     types.string
@@ -311,7 +313,8 @@ task(
       "ScopeGuard",
       taskArgs.guard
     );
-    await guard.transferOwnership(taskArgs.target);
+    let tx = await guard.transferOwnership(taskArgs.newowner);
+    let receipt = await tx.wait();
 
     console.log("ScopeGuard now owned by: ", await guard.owner());
   });
