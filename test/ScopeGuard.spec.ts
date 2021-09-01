@@ -2,6 +2,7 @@ import { expect } from "chai";
 import hre, { deployments, waffle, ethers } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { AddressZero } from "@ethersproject/constants";
+import { AddressOne } from "@gnosis.pm/safe-contracts";
 
 describe("ScopeGuard", async () => {
   const [user1, user2] = waffle.provider.getWallets();
@@ -13,8 +14,7 @@ describe("ScopeGuard", async () => {
     const executorFactory = await hre.ethers.getContractFactory("TestExecutor");
     const safe = await executorFactory.deploy();
     const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
-    const guard = await guardFactory.deploy(AddressZero);
-    await guard.setUp(initializeParams);
+    const guard = await guardFactory.deploy(user1.address);
     await safe.enableModule(user1.address);
     await safe.setGuard(guard.address);
     const tx = {
@@ -44,16 +44,21 @@ describe("ScopeGuard", async () => {
       );
     });
 
+    it("throws if owner is zero address", async () => {
+      const Guard = await hre.ethers.getContractFactory("ScopeGuard");
+      await expect(Guard.deploy(AddressZero)).to.be.revertedWith(
+        "Owner can not be zero address"
+      );
+    });
+
     it("should emit event because of successful set up", async () => {
       const Guard = await hre.ethers.getContractFactory("ScopeGuard");
-      const guard = await Guard.deploy(AddressZero);
-      const setupTx = await guard.setUp(initializeParams);
-      const transaction = await setupTx.wait();
+      const guard = await Guard.deploy(user1.address);
+      await guard.deployed();
 
-      const [initiator, owner] = transaction.events[2].args;
-
-      expect(owner).to.be.equal(user1.address);
-      expect(initiator).to.be.equal(user1.address);
+      await expect(guard.deployTransaction)
+        .to.emit(guard, "ScopeGuardSetup")
+        .withArgs(user1.address, user1.address);
     });
   });
 
