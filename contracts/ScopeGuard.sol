@@ -39,14 +39,14 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     /// @param initializeParams Parameters of initialization encoded
     function setUp(bytes memory initializeParams) public override {
         require(!initialized, "Guard is already initialized");
-        address _owner = abi.decode(initializeParams, (address));
-
-        if (_owner != address(0)) {
-            __Ownable_init();
-            transferOwnership(_owner);
-            initialized = true;
-            emit ScopeGuardSetup(msg.sender, _owner);
-        }
+        initialized = true;
+        (address _owner) = abi.decode(initializeParams, (address));
+        require(_owner != address(0), "Owner can not be zero address");
+        
+        __Ownable_init();
+        transferOwnership(_owner);
+        
+        emit ScopeGuardSetup(msg.sender, _owner);
     }
 
     struct Target {

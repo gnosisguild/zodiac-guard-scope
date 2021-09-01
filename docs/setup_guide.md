@@ -33,20 +33,29 @@ For the hardhat tasks to work the environment needs to be properly configured. S
 
 ## Deploying the ScopeGuard
 
-The first step is to deploy the ScopeGuard.
+Hardhat tasks can be used to deploy a ScopeGuard instance. There are two different tasks to deploy it, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the Master Copy of the ScopeGuard: `0x13d233567817E3a38B4082217E44CBa77c06Eb7f`.
+
+These setup tasks requires the `owner` parameter
 
 _Note: Multiple safes can use the same instance of a ScopeGuard, but they will all have the same settings controlled by the same `owner`. In most cases it is preferable for each safe to have its own instance of ScopeGuard._
 
+An example for this on Rinkeby would be:
 ```bash
-yarn hardhat setup --network rinkeby
+yarn hardhat setup --network rinkeby --owner <owner_address>
 ```
 
-This will return the address of the ScopeGuard you deployed, with the owner set to the private key you used to deploy the ScopeGuard.
-
-Now you can verify the contract on Etherscan.
+or
 
 ```bash
-yarn hardhat verifyEtherscan --network rinkeby --guard <scope_guard_address>
+yarn hardhat factorySetup --network rinkeby --factory <factory_address> --mastercopy <masterCopy_address>  --owner <owner_address>
+```
+
+This should return the address of the deployed Scope Guard. For this guide we assume this to be `0x3939393939393939393939393939393939393939`
+
+Once the module is deployed you should verify the source code (Note: If you used the factory deployment the contract should be already verified). If you use a network that is Etherscan compatible and you configure the `ETHERSCAN_API_KEY` in your environment you can use the provided hardhat task to do this.
+
+```bash
+yarn hardhat verifyEtherscan --network rinkeby --guard <scope_guard_address> --owner <owner_address>
 ```
 
 ### Setting up the ScopeGuard
@@ -105,3 +114,7 @@ yarn hardhat transferOwnership --network rinkeby --guard <scope_guard_address> -
 
 One your scope guard is set up, you'll need to call the `setGuard()` function on your GnosisSafe.
 You can do this with a custom contract interaction via the [Gnosis Safe UI](http://gnosis-safe.io/) or the [Gnosis Safe CLI](https://github.com/gnosis/safe-cli).
+
+### Deploy a master copy 
+
+If the contract get an update, you can deploy a new version of a Master Copy using the hardhat task `deployMasterCopy`. An example of the command would be: `yarn hardhat --network rinkeby deployMasterCopy`
