@@ -46,24 +46,6 @@ task("factorySetup", "deploy a ScopeGuard through factory")
     console.log("ScopeGuard deployed to:", receipt.logs[1].address);
   });
 
-task("deployMasterCopy", "deploy a master copy of ScopeGuard").setAction(
-  async (_, hardhatRuntime) => {
-    const [caller] = await hardhatRuntime.ethers.getSigners();
-    console.log("Using the account:", caller.address);
-    const Module = await hardhatRuntime.ethers.getContractFactory("ScopeGuard");
-    const module = await Module.deploy(FirstAddress);
-
-    await module.deployTransaction.wait(3);
-
-
-    console.log("Module deployed to:", module.address);
-    await hardhatRuntime.run("verify:verify", {
-      address: module.address,
-      constructorArguments: [FirstAddress],
-    });
-  }
-);
-
 task("verifyEtherscan", "Verifies the contract on etherscan")
   .addParam("guard", "Address of the ScopeGuard", undefined, types.string)
   .addParam("owner", "Address of the Owner", undefined, types.string)

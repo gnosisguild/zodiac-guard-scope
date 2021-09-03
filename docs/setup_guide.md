@@ -117,4 +117,4 @@ You can do this with a custom contract interaction via the [Gnosis Safe UI](http
 
 ### Deploy a master copy 
 
-If the contract get an update, you can deploy a new version of a Master Copy using the hardhat task `deployMasterCopy`. An example of the command would be: `yarn hardhat --network rinkeby deployMasterCopy`
+The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the Scope Guard contract gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.
