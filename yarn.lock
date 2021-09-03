@@ -565,7 +565,7 @@
 
 "@gnosis/zodiac@github:gnosis/zodiac#master":
   version "0.0.0"
-  resolved "https://codeload.github.com/gnosis/zodiac/tar.gz/30dce26b46150166769bdf55bc2d5ad0eeabe5de"
+  resolved "https://codeload.github.com/gnosis/zodiac/tar.gz/1083f84f09d3a9751815b3cecb8d8dd105489136"
   dependencies:
     "@gnosis.pm/mock-contract" "^4.0.0"
     "@gnosis.pm/safe-contracts" "1.3.0"
