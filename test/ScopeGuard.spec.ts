@@ -11,8 +11,8 @@ describe("ScopeGuard", async () => {
 
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
-    const executorFactory = await hre.ethers.getContractFactory("TestExecutor");
-    const safe = await executorFactory.deploy();
+    const avatarFactory = await hre.ethers.getContractFactory("TestAvatar");
+    const safe = await avatarFactory.deploy();
     const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
     const guard = await guardFactory.deploy(user1.address);
     await safe.enableModule(user1.address);

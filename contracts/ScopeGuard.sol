@@ -4,7 +4,7 @@ pragma solidity ^0.8.6;
 import "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
-import "@zodiacdao/zodiac/contracts/factory/FactoryFriendly.sol";
+import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 abstract contract BaseGuard is Guard {

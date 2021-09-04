@@ -27,7 +27,7 @@ interface Guard {
     function checkAfterExecution(bytes32, bool) external view;
 }
 
-contract TestExecutor {
+contract TestAvatar {
     address public module;
     address public guard;
 
