@@ -80,8 +80,8 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     /// @dev Sets whether or not calls to an address should be scoped to specific function signatures.
     /// @notice Only callable by owner.
     /// @param target Address that will be scoped/unscoped.
-    function toggleScoped(address target) public onlyOwner {
-        allowedTargets[target].scoped = !allowedTargets[target].scoped;
+    function setScoped(address target, bool scoped) public onlyOwner {
+        allowedTargets[target].scoped = scoped;
         emit TargetScoped(target, allowedTargets[target].scoped);
     }
 
@@ -162,21 +162,22 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
         bytes memory,
         address
     ) external view override {
-        bool scoped = allowedTargets[to].scoped;
         require(
             operation != Enum.Operation.DelegateCall ||
                 allowedTargets[to].delegateCallAllowed,
             "Delegate call not allowed to this address"
         );
-        require(isAllowedTarget(to), "Target address is not allowed");
+        require(allowedTargets[to].allowed, "Target address is not allowed");
         if (data.length >= 4) {
             require(
-                !scoped || isAllowedFunction(to, bytes4(data)),
+                !allowedTargets[to].scoped ||
+                    allowedTargets[to].allowedFunctions[bytes4(data)],
                 "Target function is not allowed"
             );
         } else {
             require(
-                !scoped || isAllowedFunction(to, bytes4(0)),
+                !allowedTargets[to].scoped ||
+                    allowedTargets[to].allowedFunctions[bytes4(0)],
                 "Cannot send to this address"
             );
         }

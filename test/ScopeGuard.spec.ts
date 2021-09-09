@@ -149,7 +149,7 @@ describe("ScopeGuard", async () => {
     it("should revert if scoped and target function is not allowed", async () => {
       const { safe, guard, tx } = await setupTests();
       await guard.allowTarget(safe.address);
-      await guard.toggleScoped(safe.address);
+      await guard.setScoped(safe.address, true);
       tx.data = "0x12345678";
       tx.operation = 0;
 
@@ -173,7 +173,7 @@ describe("ScopeGuard", async () => {
     it("should revert if scoped and no transaction data is disallowed", async () => {
       const { safe, guard, tx } = await setupTests();
       await guard.allowTarget(safe.address);
-      await guard.toggleScoped(safe.address);
+      await guard.setScoped(safe.address, true);
       tx.data = "0x";
       tx.value = 1;
       await expect(
@@ -384,11 +384,11 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("setScope", async () => {
+  describe("setScoped", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
       await expect(
-        guard.connect(user2).toggleScoped(guard.address)
+        guard.connect(user2).setScoped(guard.address, true)
       ).to.be.revertedWith("caller is not the owner");
     });
 
@@ -396,14 +396,14 @@ describe("ScopeGuard", async () => {
       const { guard } = await setupTests();
 
       await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(await guard.toggleScoped(guard.address));
+      await expect(await guard.setScoped(guard.address, true));
       await expect(await guard.isScoped(guard.address)).to.be.equals(true);
     });
 
     it("should emit TargetScoped(target, scoped)", async () => {
       const { safe, guard } = await setupTests();
 
-      await expect(guard.toggleScoped(safe.address))
+      await expect(guard.setScoped(safe.address, true))
         .to.emit(guard, "TargetScoped")
         .withArgs(safe.address, true);
     });
@@ -441,16 +441,15 @@ describe("ScopeGuard", async () => {
     it("should return false if set to false", async () => {
       const { guard } = await setupTests();
 
+      await expect(guard.setScoped(guard.address, false));
       await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(guard.toggleScoped(guard.address));
-      await expect(await guard.isScoped(guard.address)).to.be.equals(true);
     });
 
     it("should return true if set to true", async () => {
       const { guard } = await setupTests();
 
       await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(guard.toggleScoped(guard.address));
+      await expect(guard.setScoped(guard.address, true));
       await expect(await guard.isScoped(guard.address)).to.be.equals(true);
     });
   });
