@@ -24,7 +24,7 @@ describe("Module works with factory", () => {
     const { masterCopy } = await baseSetup();
     const encodedParams = new AbiCoder().encode(paramsTypes, [AddressOne]);
     await expect(masterCopy.setUp(encodedParams)).to.be.revertedWith(
-      "Guard is already initialized"
+      "Initializable: contract is already initialized"
     );
   });
 
