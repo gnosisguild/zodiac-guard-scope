@@ -1,24 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.6;
 
-import "@gnosis.pm/safe-contracts/contracts/base/GuardManager.sol";
+import "@gnosis/zodiac/contracts/guard/BaseGuard.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
 import "@gnosis/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-
-abstract contract BaseGuard is Guard {
-    function supportsInterface(bytes4 interfaceId)
-        external
-        view
-        virtual
-        returns (bool)
-    {
-        return
-            interfaceId == type(Guard).interfaceId || // 0xe6d7a83a
-            interfaceId == type(IERC165).interfaceId; // 0x01ffc9a7
-    }
-}
 
 contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     event TargetAllowed(address target);
@@ -40,12 +27,12 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     function setUp(bytes memory initializeParams) public override {
         require(!initialized, "Guard is already initialized");
         initialized = true;
-        (address _owner) = abi.decode(initializeParams, (address));
+        address _owner = abi.decode(initializeParams, (address));
         require(_owner != address(0), "Owner can not be zero address");
-        
+
         __Ownable_init();
         transferOwnership(_owner);
-        
+
         emit ScopeGuardSetup(msg.sender, _owner);
     }
 
