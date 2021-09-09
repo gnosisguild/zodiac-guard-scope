@@ -40,7 +40,7 @@ describe("ScopeGuard", async () => {
     it("throws if guard has already been initialized", async () => {
       const { guard } = await setupTests();
       await expect(guard.setUp(initializeParams)).to.be.revertedWith(
-        "Guard is already initialized"
+        "Initializable: contract is already initialized"
       );
     });
 

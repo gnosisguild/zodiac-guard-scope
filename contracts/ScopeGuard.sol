@@ -5,9 +5,8 @@ import "@gnosis.pm/zodiac/contracts/guard/BaseGuard.sol";
 import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
+contract ScopeGuard is FactoryFriendly, BaseGuard {
     event TargetAllowed(address target);
     event TargetDisallowed(address target);
     event TargetScoped(address target, bool scoped);
@@ -25,12 +24,10 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
     /// @dev Initialize function, will be triggered when a new proxy is deployed
     /// @param initializeParams Parameters of initialization encoded
     function setUp(bytes memory initializeParams) public override {
-        require(!initialized, "Guard is already initialized");
-        initialized = true;
+        __Ownable_init();
         address _owner = abi.decode(initializeParams, (address));
         require(_owner != address(0), "Owner can not be zero address");
 
-        __Ownable_init();
         transferOwnership(_owner);
 
         emit ScopeGuardSetup(msg.sender, _owner);
