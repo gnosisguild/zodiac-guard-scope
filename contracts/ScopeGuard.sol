@@ -2,9 +2,9 @@
 pragma solidity ^0.8.6;
 
 import "@gnosis/zodiac/contracts/guard/BaseGuard.sol";
+import "@gnosis/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
-import "@gnosis/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
