@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.6;
 
-import "@gnosis/zodiac/contracts/guard/BaseGuard.sol";
-import "@gnosis/zodiac/contracts/factory/FactoryFriendly.sol";
+import "@gnosis.pm/zodiac/contracts/guard/BaseGuard.sol";
+import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
 import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
