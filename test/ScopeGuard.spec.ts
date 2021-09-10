@@ -46,7 +46,7 @@ describe("ScopeGuard", async () => {
     it("throws if owner is zero address", async () => {
       const Guard = await hre.ethers.getContractFactory("ScopeGuard");
       await expect(Guard.deploy(AddressZero)).to.be.revertedWith(
-        "Owner can not be zero address"
+        "Ownable: new owner is the zero address"
       );
     });
 

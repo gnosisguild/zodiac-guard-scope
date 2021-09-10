@@ -25,7 +25,6 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     function setUp(bytes memory initializeParams) public override {
         __Ownable_init();
         address _owner = abi.decode(initializeParams, (address));
-        require(_owner != address(0), "Owner can not be zero address");
 
         transferOwnership(_owner);
 
