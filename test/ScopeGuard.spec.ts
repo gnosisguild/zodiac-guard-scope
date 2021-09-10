@@ -2,7 +2,6 @@ import { expect } from "chai";
 import hre, { deployments, waffle, ethers } from "hardhat";
 import "@nomiclabs/hardhat-ethers";
 import { AddressZero } from "@ethersproject/constants";
-import { AddressOne } from "@gnosis.pm/safe-contracts";
 
 describe("ScopeGuard", async () => {
   const [user1, user2] = waffle.provider.getWallets();
@@ -12,17 +11,17 @@ describe("ScopeGuard", async () => {
   const setupTests = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture();
     const avatarFactory = await hre.ethers.getContractFactory("TestAvatar");
-    const safe = await avatarFactory.deploy();
+    const avatar = await avatarFactory.deploy();
     const guardFactory = await hre.ethers.getContractFactory("ScopeGuard");
     const guard = await guardFactory.deploy(user1.address);
-    await safe.enableModule(user1.address);
-    await safe.setGuard(guard.address);
+    await avatar.enableModule(user1.address);
+    await avatar.setGuard(guard.address);
     const tx = {
-      to: safe.address,
+      to: avatar.address,
       value: 0,
       data: "0x",
       operation: 0,
-      safeTxGas: 0,
+      avatarTxGas: 0,
       baseGas: 0,
       gasPrice: 0,
       gasToken: AddressZero,
@@ -30,13 +29,13 @@ describe("ScopeGuard", async () => {
       signatures: "0x",
     };
     return {
-      safe,
+      avatar,
       guard,
       tx,
     };
   });
 
-  describe("setUp", async () => {
+  describe("setUp()", async () => {
     it("throws if guard has already been initialized", async () => {
       const { guard } = await setupTests();
       await expect(guard.setUp(initializeParams)).to.be.revertedWith(
@@ -82,7 +81,7 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("checkTransaction", async () => {
+  describe("checkTransaction()", async () => {
     it("should revert if target is not allowed", async () => {
       const { guard, tx } = await setupTests();
       await expect(
@@ -91,7 +90,7 @@ describe("ScopeGuard", async () => {
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -111,7 +110,7 @@ describe("ScopeGuard", async () => {
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -123,10 +122,10 @@ describe("ScopeGuard", async () => {
     });
 
     it("should allow delegate call if delegate calls are allowed to target", async () => {
-      const { guard, safe, tx } = await setupTests();
+      const { guard, avatar, tx } = await setupTests();
 
-      await guard.allowTarget(safe.address);
-      await guard.allowDelegateCall(safe.address);
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setDelegateCallAllowedOnTarget(avatar.address, true);
       tx.operation = 1;
 
       await expect(
@@ -135,7 +134,7 @@ describe("ScopeGuard", async () => {
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -147,9 +146,9 @@ describe("ScopeGuard", async () => {
     });
 
     it("should revert if scoped and target function is not allowed", async () => {
-      const { safe, guard, tx } = await setupTests();
-      await guard.allowTarget(safe.address);
-      await guard.toggleScoped(safe.address);
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
       tx.data = "0x12345678";
       tx.operation = 0;
 
@@ -159,7 +158,7 @@ describe("ScopeGuard", async () => {
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -171,9 +170,9 @@ describe("ScopeGuard", async () => {
     });
 
     it("should revert if scoped and no transaction data is disallowed", async () => {
-      const { safe, guard, tx } = await setupTests();
-      await guard.allowTarget(safe.address);
-      await guard.toggleScoped(safe.address);
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
       tx.data = "0x";
       tx.value = 1;
       await expect(
@@ -182,7 +181,7 @@ describe("ScopeGuard", async () => {
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -193,19 +192,19 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Cannot send to this address");
     });
 
-    it("it should be callable by a safe", async () => {
-      const { safe, guard, tx } = await setupTests();
-      await guard.allowTarget(guard.address);
+    it("it should be callable by a avatar", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      expect(guard.setTargetAllowed(guard.address, true));
       tx.operation = 0;
       tx.to = guard.address;
       tx.value = 0;
       await expect(
-        safe.execTransaction(
+        avatar.execTransaction(
           tx.to,
           tx.value,
           tx.data,
           tx.operation,
-          tx.safeTxGas,
+          tx.avatarTxGas,
           tx.baseGas,
           tx.gasPrice,
           tx.gasToken,
@@ -216,286 +215,257 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("allowTarget", async () => {
+  describe("setTargetAllowed()", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).allowTarget(guard.address)
+      expect(
+        guard.connect(user2).setTargetAllowed(guard.address, true)
       ).to.be.revertedWith("caller is not the owner");
     });
 
-    it("should allowe a target", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(await guard.isAllowedTarget(guard.address)).to.be.equals(
-        false
-      );
-      await expect(guard.allowTarget(guard.address));
+    it("should allow a target", async () => {
+      const { avatar, guard } = await setupTests();
+      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(false);
+      expect(guard.setTargetAllowed(guard.address, true))
+        .to.emit(guard, "SetTargetAllowed")
+        .withArgs(guard.address, true);
       await expect(await guard.isAllowedTarget(guard.address)).to.be.equals(
         true
       );
-    });
-
-    it("should emit TargetAllowed(target)", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(guard.allowTarget(safe.address))
-        .to.emit(guard, "TargetAllowed")
-        .withArgs(safe.address);
-    });
-  });
-
-  describe("disalowTarget", async () => {
-    it("should revert if caller is not owner", async () => {
-      const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).disallowTarget(guard.address)
-      ).to.be.revertedWith("caller is not the owner");
     });
 
     it("should disallow a target", async () => {
-      const { guard } = await setupTests();
-
-      await expect(guard.allowTarget(guard.address));
-      await expect(await guard.isAllowedTarget(guard.address)).to.be.equals(
-        true
-      );
-      await expect(guard.disallowTarget(guard.address));
-      await expect(await guard.isAllowedTarget(guard.address)).to.be.equals(
-        false
-      );
+      const { avatar, guard } = await setupTests();
+      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(false);
+      expect(guard.setTargetAllowed(guard.address, true))
+        .to.emit(guard, "SetTargetAllowed")
+        .withArgs(guard.address, true);
+      expect(guard.setTargetAllowed(guard.address, false))
+        .to.emit(guard, "SetTargetAllowed")
+        .withArgs(guard.address, false);
+      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(false);
     });
 
-    it("should emit TargetDisallowed(target)", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(guard.disallowTarget(safe.address))
-        .to.emit(guard, "TargetDisallowed")
-        .withArgs(safe.address);
+    it("should emit SetTargetAllowed(target, allowed)", async () => {
+      const { avatar, guard } = await setupTests();
+      expect(guard.setTargetAllowed(guard.address, false))
+        .to.emit(guard, "SetTargetAllowed")
+        .withArgs(guard.address, false);
     });
   });
 
-  describe("allowDelegateCall", async () => {
+  describe("setDelegateCallAllowedOnTarget()", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).allowDelegateCall(guard.address)
+      expect(
+        guard.connect(user2).setDelegateCallAllowedOnTarget(guard.address, true)
       ).to.be.revertedWith("caller is not the owner");
     });
 
     it("should allow delegate calls for a target", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(
-        await guard.isAllowedToDelegateCall(guard.address)
-      ).to.be.equals(false);
-      await expect(guard.allowDelegateCall(guard.address));
-      await expect(
-        await guard.isAllowedToDelegateCall(guard.address)
-      ).to.be.equals(true);
-    });
-
-    it("should emit DelegateCallsAllowedOnTarget(target)", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(guard.allowDelegateCall(safe.address))
-        .to.emit(guard, "DelegateCallsAllowedOnTarget")
-        .withArgs(safe.address);
-    });
-  });
-
-  describe("disallowDelegateCall", async () => {
-    it("should revert if caller is not owner", async () => {
-      const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).disallowTarget(guard.address)
-      ).to.be.revertedWith("caller is not the owner");
+      const { avatar, guard } = await setupTests();
+      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+        false
+      );
+      expect(guard.setDelegateCallAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetDelegateCallAllowedOnTarget")
+        .withArgs(guard.address, true);
+      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+        true
+      );
     });
 
     it("should disallow delegate calls for a target", async () => {
-      const { guard } = await setupTests();
-      await guard.allowDelegateCall(guard.address);
-      await expect(
-        await guard.isAllowedToDelegateCall(guard.address)
-      ).to.be.equals(true);
-      await expect(guard.disallowDelegateCall(guard.address));
-      await expect(
-        await guard.isAllowedToDelegateCall(guard.address)
-      ).to.be.equals(false);
+      const { avatar, guard } = await setupTests();
+      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+        false
+      );
+      expect(guard.setDelegateCallAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetDelegateCallAllowedOnTarget")
+        .withArgs(guard.address, true);
+      expect(guard.setDelegateCallAllowedOnTarget(guard.address, false))
+        .to.emit(guard, "SetDelegateCallAllowedOnTarget")
+        .withArgs(guard.address, false);
+      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+        false
+      );
     });
 
-    it("should emit DelegateCallsDisllowedOnTarget(target)", async () => {
-      const { safe, guard } = await setupTests();
-      await guard.allowDelegateCall(safe.address);
-      await expect(guard.disallowDelegateCall(safe.address))
-        .to.emit(guard, "DelegateCallsDisallowedOnTarget")
-        .withArgs(safe.address);
+    it("should emit DelegateCallsAllowedOnTarget(target, allowed)", async () => {
+      const { avatar, guard } = await setupTests();
+      expect(guard.setDelegateCallAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetDelegateCallAllowedOnTarget")
+        .withArgs(guard.address, true);
     });
   });
 
-  describe("allowFunction", async () => {
+  describe("setScoped()", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).allowFunction(guard.address, "0x12345678")
+      expect(
+        guard.connect(user2).setScoped(guard.address, true)
+      ).to.be.revertedWith("caller is not the owner");
+    });
+
+    it("should set scoped to true for a target", async () => {
+      const { guard } = await setupTests();
+
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(guard.setScoped(guard.address, true))
+        .to.emit(guard, "SetTargetScoped")
+        .withArgs(guard.address, true);
+      expect(await guard.isScoped(guard.address)).to.be.equals(true);
+    });
+
+    it("should set scoped to false for a target", async () => {
+      const { guard } = await setupTests();
+
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(guard.setScoped(guard.address, true))
+        .to.emit(guard, "SetTargetScoped")
+        .withArgs(guard.address, true);
+      expect(guard.setScoped(guard.address, false))
+        .to.emit(guard, "SetTargetScoped")
+        .withArgs(guard.address, false);
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+    });
+
+    it("should emit SetTargetScoped(target, scoped)", async () => {
+      const { guard } = await setupTests();
+
+      expect(guard.setScoped(guard.address, true))
+        .to.emit(guard, "SetTargetScoped")
+        .withArgs(guard.address, true);
+    });
+  });
+
+  describe("setAllowedFunction()", async () => {
+    it("should revert if caller is not owner", async () => {
+      const { guard } = await setupTests();
+      expect(
+        guard
+          .connect(user2)
+          .setAllowedFunction(guard.address, "0x12345678", true)
       ).to.be.revertedWith("caller is not the owner");
     });
 
     it("should allow function for a target", async () => {
       const { guard } = await setupTests();
-      await expect(
+      expect(
         await guard.isAllowedFunction(guard.address, "0x12345678")
       ).to.be.equals(false);
-      await expect(guard.allowFunction(guard.address, "0x12345678"));
-      await expect(
+      expect(guard.setAllowedFunction(guard.address, "0x12345678", true))
+        .to.emit(guard, "SetFunctionAllowedOnTarget")
+        .withArgs(guard.address, "0x12345678", true);
+      expect(
         await guard.isAllowedFunction(guard.address, "0x12345678")
       ).to.be.equals(true);
-    });
-
-    it("should emit FunctionAllowedOnTargetarget(address, sig)", async () => {
-      const { safe, guard } = await setupTests();
-      await expect(guard.allowFunction(safe.address, "0x12345678"))
-        .to.emit(guard, "FunctionAllowedOnTarget")
-        .withArgs(safe.address, "0x12345678");
-    });
-  });
-
-  describe("disallowFunction", async () => {
-    it("should revert if caller is not owner", async () => {
-      const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).disallowFunction(guard.address, "0x12345678")
-      ).to.be.revertedWith("caller is not the owner");
     });
 
     it("should disallow function for a target", async () => {
       const { guard } = await setupTests();
-      await guard.allowFunction(guard.address, "0x12345678");
-      await expect(
+      expect(
         await guard.isAllowedFunction(guard.address, "0x12345678")
-      ).to.be.equals(true);
-      await expect(guard.disallowFunction(guard.address, "0x12345678"));
-      await expect(
+      ).to.be.equals(false);
+      expect(guard.setAllowedFunction(guard.address, "0x12345678", true))
+        .to.emit(guard, "SetFunctionAllowedOnTarget")
+        .withArgs(guard.address, "0x12345678", true);
+      expect(guard.setAllowedFunction(guard.address, "0x12345678", false))
+        .to.emit(guard, "SetFunctionAllowedOnTarget")
+        .withArgs(guard.address, "0x12345678", false);
+      expect(
         await guard.isAllowedFunction(guard.address, "0x12345678")
       ).to.be.equals(false);
     });
 
-    it("should emit FunctionDisallowedOnTarget(target, sig)", async () => {
-      const { safe, guard } = await setupTests();
-      await guard.allowFunction(safe.address, "0x12345678");
-      await expect(guard.disallowFunction(safe.address, "0x12345678"))
-        .to.emit(guard, "FunctionDisallowedOnTarget")
-        .withArgs(safe.address, "0x12345678");
-    });
-  });
-
-  describe("setScope", async () => {
-    it("should revert if caller is not owner", async () => {
-      const { guard } = await setupTests();
-      await expect(
-        guard.connect(user2).toggleScoped(guard.address)
-      ).to.be.revertedWith("caller is not the owner");
-    });
-
-    it("should set scoped for a target", async () => {
-      const { guard } = await setupTests();
-
-      await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(await guard.toggleScoped(guard.address));
-      await expect(await guard.isScoped(guard.address)).to.be.equals(true);
-    });
-
-    it("should emit TargetScoped(target, scoped)", async () => {
-      const { safe, guard } = await setupTests();
-
-      await expect(guard.toggleScoped(safe.address))
-        .to.emit(guard, "TargetScoped")
-        .withArgs(safe.address, true);
+    it("should emit SetFunctionAllowedOnTarget(address, sig, allowed)", async () => {
+      const { avatar, guard } = await setupTests();
+      expect(guard.setAllowedFunction(guard.address, "0x12345678", false))
+        .to.emit(guard, "SetFunctionAllowedOnTarget")
+        .withArgs(guard.address, "0x12345678", false);
     });
   });
 
   describe("isAllowedTarget", async () => {
     it("should return false if not set", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(await guard.isAllowedTarget(safe.address)).to.be.equals(
-        false
-      );
+      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
     });
 
     it("should return true if target is allowed", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(await guard.isAllowedTarget(safe.address)).to.be.equals(
-        false
-      );
-      await expect(guard.allowTarget(safe.address));
-      await expect(await guard.isAllowedTarget(safe.address)).to.be.equals(
-        true
-      );
+      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
+      expect(guard.setTargetAllowed(avatar.address, true));
+      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(true);
     });
   });
 
   describe("isScoped", async () => {
     it("should return false if not set", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
     });
 
     it("should return false if set to false", async () => {
       const { guard } = await setupTests();
 
-      await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(guard.toggleScoped(guard.address));
-      await expect(await guard.isScoped(guard.address)).to.be.equals(true);
+      expect(guard.setScoped(guard.address, false));
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
     });
 
     it("should return true if set to true", async () => {
       const { guard } = await setupTests();
 
-      await expect(await guard.isScoped(guard.address)).to.be.equals(false);
-      await expect(guard.toggleScoped(guard.address));
-      await expect(await guard.isScoped(guard.address)).to.be.equals(true);
+      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(guard.setScoped(guard.address, true));
+      expect(await guard.isScoped(guard.address)).to.be.equals(true);
     });
   });
 
   describe("isAllowedFunction", async () => {
     it("should return false if not set", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(
-        await guard.isAllowedFunction(safe.address, "0x12345678")
+      expect(
+        await guard.isAllowedFunction(avatar.address, "0x12345678")
       ).to.be.equals(false);
     });
 
     it("should return true if function is allowed", async () => {
-      const { safe, guard } = await setupTests();
+      const { guard } = await setupTests();
 
-      await expect(
-        await guard.isAllowedFunction(safe.address, "0x12345678")
+      expect(
+        await guard.isAllowedFunction(guard.address, "0x12345678")
       ).to.be.equals(false);
-      await expect(guard.allowFunction(safe.address, "0x12345678"));
-      await expect(
-        await guard.isAllowedFunction(safe.address, "0x12345678")
+      expect(guard.setAllowedFunction(guard.address, "0x12345678", true))
+        .to.emit(guard, "SetFunctionAllowedOnTarget")
+        .withArgs(guard.address, "0x12345678", true);
+      expect(
+        await guard.isAllowedFunction(guard.address, "0x12345678")
       ).to.be.equals(true);
     });
   });
 
   describe("isAllowedToDelegateCall", async () => {
     it("should return false by default", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(await guard.isAllowedTarget(safe.address)).to.be.equals(
-        false
-      );
+      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
     });
 
     it("should return true if target is allowed to delegate call", async () => {
-      const { safe, guard } = await setupTests();
+      const { avatar, guard } = await setupTests();
 
-      await expect(
-        await guard.isAllowedToDelegateCall(safe.address)
-      ).to.be.equals(false);
-      await expect(guard.allowDelegateCall(safe.address));
-      await expect(
-        await guard.isAllowedToDelegateCall(safe.address)
-      ).to.be.equals(true);
+      expect(await guard.isAllowedToDelegateCall(avatar.address)).to.be.equals(
+        false
+      );
+      expect(guard.setDelegateCallAllowedOnTarget(avatar.address, true));
+      expect(await guard.isAllowedToDelegateCall(avatar.address)).to.be.equals(
+        true
+      );
     });
   });
 });

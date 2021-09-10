@@ -3,18 +3,17 @@ pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/guard/BaseGuard.sol";
 import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
-import "@gnosis.pm/safe-contracts/contracts/GnosisSafe.sol";
-import "@gnosis.pm/safe-contracts/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
-    event TargetAllowed(address target);
-    event TargetDisallowed(address target);
-    event TargetScoped(address target, bool scoped);
-    event DelegateCallsAllowedOnTarget(address target);
-    event DelegateCallsDisallowedOnTarget(address target);
-    event FunctionAllowedOnTarget(address target, bytes4 functionSig);
-    event FunctionDisallowedOnTarget(address target, bytes4 functionSig);
+    event SetTargetAllowed(address target, bool isAllowed);
+    event SetTargetScoped(address target, bool isScoped);
+    event SetDelegateCallAllowedOnTarget(address target, bool isAllowed);
+    event SetFunctionAllowedOnTarget(
+        address target,
+        bytes4 functionSig,
+        bool isAllowed
+    );
     event ScopeGuardSetup(address indexed initiator, address indexed owner);
 
     constructor(address _owner) {
@@ -45,68 +44,55 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
 
     mapping(address => Target) public allowedTargets;
 
-    /// @dev Allows multisig owners to make call to an address.
+    /// @dev Set whether or not calls can be made to an address.
     /// @notice Only callable by owner.
-    /// @param target Address to be allowed.
-    function allowTarget(address target) public onlyOwner {
-        allowedTargets[target].allowed = true;
-        emit TargetAllowed(target);
+    /// @param target Address to be allowed/disallowed.
+    /// @param allow Bool to allow (true) or disallow (false) calls to target.
+    function setTargetAllowed(address target, bool allow) public onlyOwner {
+        allowedTargets[target].allowed = allow;
+        emit SetTargetAllowed(target, allowedTargets[target].allowed);
     }
 
-    /// @dev Disallows multisig owners to make call to an address.
+    /// @dev Set whether or not delegate calls can be made to a target.
     /// @notice Only callable by owner.
-    /// @param target Address to be disallowed.
-    function disallowTarget(address target) public onlyOwner {
-        allowedTargets[target].allowed = false;
-        emit TargetDisallowed(target);
-    }
-
-    /// @dev Allows multisig owners to make delegate calls to an address.
-    /// @notice Only callable by owner.
-    /// @param target Address to which delegate calls will be allowed.
-    function allowDelegateCall(address target) public onlyOwner {
-        allowedTargets[target].delegateCallAllowed = true;
-        emit DelegateCallsAllowedOnTarget(target);
-    }
-
-    /// @dev Disallows multisig owners to make delegate calls to an address.
-    /// @notice Only callable by owner.
-    /// @param target Address to which delegate calls will be disallowed.
-    function disallowDelegateCall(address target) public onlyOwner {
-        allowedTargets[target].delegateCallAllowed = false;
-        emit DelegateCallsDisallowedOnTarget(target);
+    /// @param target Address to which delegate calls should be allowed/disallowed.
+    /// @param allow Bool to allow (true) or disallow (false) delegate calls to target.
+    function setDelegateCallAllowedOnTarget(address target, bool allow)
+        public
+        onlyOwner
+    {
+        allowedTargets[target].delegateCallAllowed = allow;
+        emit SetDelegateCallAllowedOnTarget(
+            target,
+            allowedTargets[target].delegateCallAllowed
+        );
     }
 
     /// @dev Sets whether or not calls to an address should be scoped to specific function signatures.
     /// @notice Only callable by owner.
-    /// @param target Address that will be scoped/unscoped.
-    function toggleScoped(address target) public onlyOwner {
-        allowedTargets[target].scoped = !allowedTargets[target].scoped;
-        emit TargetScoped(target, allowedTargets[target].scoped);
+    /// @param target Address to be scoped/unscoped.
+    /// @param scope Bool to scope (true) or unscope (false) function calls on target.
+    function setScoped(address target, bool scope) public onlyOwner {
+        allowedTargets[target].scoped = scope;
+        emit SetTargetScoped(target, allowedTargets[target].scoped);
     }
 
-    function allowFunction(address target, bytes4 functionSig)
-        public
-        onlyOwner
-    {
-        /// @dev Allows multisig owners to call specific function on a scoped address.
-        /// @notice Only callable by owner.
-        /// @param target Address that the function should be allowed.
-        /// @param functionSig Function signature to be allowed.
-        allowedTargets[target].allowedFunctions[functionSig] = true;
-        emit FunctionAllowedOnTarget(target, functionSig);
-    }
-
-    /// @dev Disallows multisig owners to call specific function on a scoped address.
+    /// @dev Sets whether or not a specific function signature should be allowed on a scoped target.
     /// @notice Only callable by owner.
-    /// @param target Address that the function should be disallowed.
-    /// @param functionSig Function signature to be disallowed.
-    function disallowFunction(address target, bytes4 functionSig)
-        public
-        onlyOwner
-    {
-        allowedTargets[target].allowedFunctions[functionSig] = false;
-        emit FunctionDisallowedOnTarget(target, functionSig);
+    /// @param target Scoped address on which a function signature should be allowed/disallowed.
+    /// @param functionSig Function signature to be allowed/disallowed.
+    /// @param allow Bool to allow (true) or disallow (false) calls a function signature on target.
+    function setAllowedFunction(
+        address target,
+        bytes4 functionSig,
+        bool allow
+    ) public onlyOwner {
+        allowedTargets[target].allowedFunctions[functionSig] = allow;
+        emit SetFunctionAllowedOnTarget(
+            target,
+            functionSig,
+            allowedTargets[target].allowedFunctions[functionSig]
+        );
     }
 
     /// @dev Returns bool to indicate if an address is an allowed target.
@@ -162,21 +148,22 @@ contract ScopeGuard is FactoryFriendly, OwnableUpgradeable, BaseGuard {
         bytes memory,
         address
     ) external view override {
-        bool scoped = allowedTargets[to].scoped;
         require(
             operation != Enum.Operation.DelegateCall ||
                 allowedTargets[to].delegateCallAllowed,
             "Delegate call not allowed to this address"
         );
-        require(isAllowedTarget(to), "Target address is not allowed");
+        require(allowedTargets[to].allowed, "Target address is not allowed");
         if (data.length >= 4) {
             require(
-                !scoped || isAllowedFunction(to, bytes4(data)),
+                !allowedTargets[to].scoped ||
+                    allowedTargets[to].allowedFunctions[bytes4(data)],
                 "Target function is not allowed"
             );
         } else {
             require(
-                !scoped || isAllowedFunction(to, bytes4(0)),
+                !allowedTargets[to].scoped ||
+                    allowedTargets[to].allowedFunctions[bytes4(0)],
                 "Cannot send to this address"
             );
         }
