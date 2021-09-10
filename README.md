@@ -1,6 +1,7 @@
 # ScopeGuard
 
-[![Build Status](https://github.com/gnosis/zodiac-guard-scope/workflows/zodiac-guard-scope/badge.svg?branch=main)](https://github.com/gnosis/zodiac-guard-scope/actions)
+[![Build Status](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml)
+
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-guard-scope/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-guard-scope)
 
 A transaction guard that allows the owner to limit a Gnosis Safe's multisig owners to calling specific function signatures on specific contracts.
