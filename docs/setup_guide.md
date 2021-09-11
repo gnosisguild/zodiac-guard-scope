@@ -33,9 +33,10 @@ For the hardhat tasks to work the environment needs to be properly configured. S
 
 ## Deploying the ScopeGuard
 
-Hardhat tasks can be used to deploy a ScopeGuard instance. There are two different tasks to deploy it, the first one is through a normal deployment and passing arguments to the constructor (with the task `setup`), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (with the task `factorySetup`) - In rinkeby the address of the Proxy Factory is: `0xd067410a85ffC8C55f7245DE4BfE16C95329D232` and the Master Copy of the ScopeGuard: `0x13d233567817E3a38B4082217E44CBa77c06Eb7f`.
+The guard only has one attribute which is:
+- Owner: address that can call setter functions 
 
-These setup tasks requires the `owner` parameter
+Hardhat tasks can be used to deploy a ScopeGuard instance. There are two different ways to deploy it, the first one is through a normal deployment and passing arguments to the constructor (without the `proxied` flag), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (without the `proxied` flag) - The master copy and factory address can be found in the [zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) and these are the addresses that are going to be used when deploying the module through factory.
 
 _Note: Multiple safes can use the same instance of a ScopeGuard, but they will all have the same settings controlled by the same `owner`. In most cases it is preferable for each safe to have its own instance of ScopeGuard._
 
@@ -47,7 +48,7 @@ yarn hardhat setup --network rinkeby --owner <owner_address>
 or
 
 ```bash
-yarn hardhat factorySetup --network rinkeby --factory <factory_address> --mastercopy <masterCopy_address>  --owner <owner_address>
+yarn hardhat setup --network rinkeby  --owner <owner_address> --proxied true
 ```
 
 This should return the address of the deployed Scope Guard. For this guide we assume this to be `0x3939393939393939393939393939393939393939`

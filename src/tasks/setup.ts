@@ -1,50 +1,55 @@
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import { task, types } from "hardhat/config";
-import { Contract } from "ethers";
-import { AbiCoder } from "ethers/lib/utils";
+import { deployAndSetUpModule } from "@gnosis.pm/zodiac";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-const ZeroAddress = "0x0000000000000000000000000000000000000000";
-const FirstAddress = "0x0000000000000000000000000000000000000001";
+interface ScopeGuardTaskArgs {
+  owner: string;
+  proxied: boolean;
+}
 
-task("setup", "Deploys a ScopeGuard").setAction(async (_, hardhatRuntime) => {
+const deployScopeGuard = async (
+  taskArgs: ScopeGuardTaskArgs,
+  hardhatRuntime: HardhatRuntimeEnvironment
+) => {
   const [caller] = await hardhatRuntime.ethers.getSigners();
   console.log("Using the account:", caller.address);
-  const Guard = await hardhatRuntime.ethers.getContractFactory("ScopeGuard");
-  const guard = await Guard.deploy(ZeroAddress);
 
-  console.log("ScopeGuard deployed to:", guard.address);
-});
-
-task("factorySetup", "deploy a ScopeGuard through factory")
-  .addParam("factory", "Address of the Proxy Factory", undefined, types.string)
-  .addParam("mastercopy", "Address of the ScopeGuard Master Copy")
-  .addParam("owner", "Address of the owner", undefined, types.string)
-  .setAction(async (taskArgs, hardhatRuntime) => {
-    const [caller] = await hardhatRuntime.ethers.getSigners();
-    console.log("Using the account:", caller.address);
-
-    const FactoryAbi = [
-      `function deployModule(
-          address masterCopy, 
-          bytes memory initializer
-      ) public returns (address proxy)`,
-    ];
-
-    const Factory = new Contract(taskArgs.factory, FactoryAbi, caller);
-    const ScopeGuard = await hardhatRuntime.ethers.getContractFactory(
-      "ScopeGuard"
+  if (taskArgs.proxied) {
+    const chainId = await hardhatRuntime.getChainId();
+    const { transaction } = deployAndSetUpModule(
+      "scopeGuard",
+      {
+        types: ["address"],
+        values: [taskArgs.owner],
+      },
+      hardhatRuntime.ethers.provider,
+      Number(chainId),
+      Date.now().toString()
     );
-    const encodedParams = new AbiCoder().encode(["address"], [taskArgs.owner]);
-    const initParams = ScopeGuard.interface.encodeFunctionData("setUp", [
-      encodedParams,
-    ]);
-    const receipt = await Factory.deployModule(
-      taskArgs.mastercopy,
-      initParams
-    ).then((tx: any) => tx.wait(3));
+
+    const deploymentTransaction = await caller.sendTransaction(transaction);
+    const receipt = await deploymentTransaction.wait();
     console.log("ScopeGuard deployed to:", receipt.logs[1].address);
-  });
+    return;
+  }
+
+  const Guard = await hardhatRuntime.ethers.getContractFactory("ScopeGuard");
+  const guard = await Guard.deploy(taskArgs.owner);
+  console.log("ScopeGuard deployed to:", guard.address);
+};
+
+task("setup", "Deploys a ScopeGuard")
+  .addParam("owner", "Address of the Owner", undefined, types.string)
+  .addParam(
+    "proxied",
+    "Deploys contract through factory",
+    false,
+    types.boolean,
+    true
+  )
+  .setAction(deployScopeGuard);
 
 task("verifyEtherscan", "Verifies the contract on etherscan")
   .addParam("guard", "Address of the ScopeGuard", undefined, types.string)
