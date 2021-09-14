@@ -43,3 +43,11 @@ The contracts have been developed with [Solidity 0.8.6](https://github.com/ether
 ### Setup Guide
 
 Follow our [ScopeGuard Setup Guide](./docs/setup_guide.md) to setup and use a ScopeGuard.
+
+### Security and Liability
+
+All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+### License
+
+Created under the [LGPL-3.0+ license](LICENSE).
