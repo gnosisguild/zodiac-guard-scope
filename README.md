@@ -51,3 +51,15 @@ All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MER
 ### License
 
 Created under the [LGPL-3.0+ license](LICENSE).
+
+### Audits
+
+An audit has been performed by the [G0 group](https://github.com/g0-group).
+
+All issues and notes of the audit have been addressed in commit [ad2579a3fc684b2dd87c5f87c8736cd61e46e4cb](https://github.com/gnosis/zodiac-guard-scope/commit/ad2579a3fc684b2dd87c5f87c8736cd61e46e4cb).
+
+The audit results are available as a pdf in [this repo](audits/ZodiacScopeGuardSep2021.pdf) or on the [g0-group repo](https://github.com/g0-group/Audits/blob/e11752abb010f74e32a6fc61142032a10deed578/ZodiacScopeGuardSep2021.pdf).
+
+### Security and Liability
+
+All contracts are WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
