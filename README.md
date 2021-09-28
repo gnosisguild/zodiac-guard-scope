@@ -1,40 +1,50 @@
-# ScopeGuard
+# Zodiac Scope Guard
 
 [![Build Status](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-guard-scope/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-guard-scope)
 
-A transaction guard that allows the owner to limit a Gnosis Safe's multisig owners to calling specific function signatures on specific contracts.
+The Scope Guard belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools.
+
+If you have any questions about Zodiac, join the [Gnosis Guild Discord](https://discord.gg/wwmBWTgyEq). Follow [@GnosisGuild](https://twitter.com/gnosisguild) on Twitter for updates.
+
+
+### About the Scope Guard
+
+This guard allows an avatar or module to limit the scope of the functions with which it can interact. This enables a DAO to define granular permissions for different control mechanisms.
+
+This module is intended to be used with the [Gnosis Safe](https://github.com/gnosis/safe-contracts).
+
 
 ### Features
 
-- Set specific addresses that the multisig owners can call
+- Set specific addresses that the Safe signers can call
 - Scope the functions that are allowed to be called on specific addresses
-- Allow/disallow multisig transaction to use delegate calls to specific addresses
+- Allow/disallow Safe transactions to use delegate calls to specific addresses
 
 ### Flow
 
-- Deploy ScopeGuard
-- Allow addresses and function calls that the Safe multisig signers should be able to call
-- Enable the txguard in the Safe
+- Deploy Scope Guard
+- Allow addresses and function calls that the Safe signers should be able to call
+- Enable the txguard on the Safe
 
 ### Warnings ⚠️
 
-Before you enable your ScopeGuard, please make sure you have setup the ScopeGuard fully to enable each of the addresses and functions you wish the multisig owners to be able to call.
+Before you enable Scope Guard, please make sure you have setup the Scope Guard fully to enable each of the addresses and functions you wish the Safe signers to be able to call.
 
-Best practice is to enable another account that you control as a module to your Safe before enabling your ScopeGuard.
+The best practice is to enable another account that you control as a module on your Safe before enabling Scope Guard. 
 
-Some specific things you should be aware of:
+Some specific things of which you should be aware:
 
-- Enabling a ScopeGuard can brick your Safe, making it unusable and rendering any funds inaccessible.
-  Once enabled on your Safe, your ScopeGuard will revert any transactions to addresses or functions that have not been explicitly allowed.
-- By default it is not possible to use delegate call with any contract once your ScopeGuard is enabled.
-  This means if the ScopeGuard is added without allowing delegate calls for the `MultiSendCallOnly` contract, there might be issues when using some Safe apps via the Safe web interface.
+- Enabling Scope Guard can brick your Safe, making it unusable and rendering any funds inaccessible.
+  Once enabled on your Safe, your Scope Guard will revert any transactions to addresses or functions that have not been explicitly allowed.
+- By default, it is not possible to use delegate call with any contract once your Scope Guard has been enabled.
+  This means if Scope Guard is added without allowing delegate calls for the `MultiSendCallOnly` contract, there might be issues when using some Safe Apps available on the Safe web interface.
 - Delegate call usage checks are per address. It is not possible to limit this to a specific function of a contract.
 - Transaction value is not checked.
-  This means that the multisig owners can send any amount of native assets allowed addresses.
-- If a contract address is marked as scoped it is not possible to call any function on this contract UNLESS it was explicitly marked as allowed.
+  This means that the Safe signers can send any amount of native assets allowed addresses.
+- If a contract address is marked as scoped, it is not possible to call any function on this contract UNLESS it was explicitly marked as allowed.
 - If the Safe contract itself is marked as scoped without any allowed functions, it is bricked (even if the Safe address itself is in the allowed list).
-- Enabling the ScopeGuard will increase the gas cost of each multisig transaction.
+- Enabling Scope Guard will increase the gas cost of each multisig transaction.
 
 ### Solidity Compiler
 
@@ -42,7 +52,7 @@ The contracts have been developed with [Solidity 0.8.6](https://github.com/ether
 
 ### Setup Guide
 
-Follow our [ScopeGuard Setup Guide](./docs/setup_guide.md) to setup and use a ScopeGuard.
+Follow our [Scope Guard Setup Guide](./docs/setup_guide.md).
 
 ### Security and Liability
 
