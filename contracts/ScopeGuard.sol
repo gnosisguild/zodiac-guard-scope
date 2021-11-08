@@ -150,7 +150,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
             "Delegate call not allowed to this address"
         );
         require(allowedTargets[to].allowed, "Target address is not allowed");
-        if (data.length >= 4) {
+        if (data.length > 0) {
             require(
                 !allowedTargets[to].scoped ||
                     allowedTargets[to].allowedFunctions[bytes4(data)],
