@@ -214,7 +214,7 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Cannot send to this address");
     });
 
-    it("should revert function sig is 0x00000000 and not explicitly approved", async () => {
+    it("should revert if function sig is 0x00000000 and not explicitly approved", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
       await guard.setScoped(avatar.address, true);
