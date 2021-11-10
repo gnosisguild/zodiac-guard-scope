@@ -35,6 +35,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         bool allowed;
         bool scoped;
         bool delegateCallAllowed;
+        bool sendAllowed;
         mapping(bytes4 => bool) allowedFunctions;
     }
 
@@ -156,10 +157,11 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
                     allowedTargets[to].allowedFunctions[bytes4(data)],
                 "Target function is not allowed"
             );
+        } else if (data.length > 0 && data.length < 4) {
+            revert("Function signature too short");
         } else {
             require(
-                !allowedTargets[to].scoped ||
-                    allowedTargets[to].allowedFunctions[bytes4(0)],
+                !allowedTargets[to].scoped || allowedTargets[to].sendAllowed,
                 "Cannot send to this address"
             );
         }
