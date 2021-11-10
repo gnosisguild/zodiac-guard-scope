@@ -170,9 +170,8 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
                     allowedTargets[to].allowedFunctions[bytes4(data)],
                 "Target function is not allowed"
             );
-        } else if (data.length > 0 && data.length < 4) {
-            revert("Function signature too short");
         } else {
+            require(data.length == 0, "Function signature too short");
             require(
                 !allowedTargets[to].scoped || allowedTargets[to].sendAllowed,
                 "Cannot send to this address"
