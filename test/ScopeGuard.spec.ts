@@ -218,7 +218,32 @@ describe("ScopeGuard", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
       await guard.setScoped(avatar.address, true);
-      await guard.setAllowedFunction(avatar.address, "0x00000000", true);
+      await guard.setSendAllowedOnTarget(avatar.address, false);
+      await guard.setAllowedFunction(avatar.address, "0x00000000", false);
+      tx.data = "0x00000000";
+      tx.value = 1;
+      await expect(
+        guard.checkTransaction(
+          tx.to,
+          tx.value,
+          tx.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures,
+          user1.address
+        )
+      ).to.be.revertedWith("Target function is not allowed");
+    });
+
+    it("should send to target is send is allowed", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
+      await guard.setSendAllowedOnTarget(avatar.address, true);
       tx.data = "0x";
       tx.value = 1;
       await expect(
@@ -235,7 +260,7 @@ describe("ScopeGuard", async () => {
           tx.signatures,
           user1.address
         )
-      ).to.be.revertedWith("Cannot send to this address");
+      );
     });
 
     it("should be callable by an avatar", async () => {
