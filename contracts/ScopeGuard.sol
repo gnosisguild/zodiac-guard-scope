@@ -117,6 +117,12 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         return (allowedTargets[target].scoped);
     }
 
+    /// @dev Returns bool to indicate if an address is scoped.
+    /// @param target Address to check.
+    function isSendAllowed(address target) public view returns (bool) {
+        return (allowedTargets[target].sendAllowed);
+    }
+
     /// @dev Returns bool to indicate if a function signature is allowed for a target address.
     /// @param target Address to check.
     /// @param functionSig Signature to check.
