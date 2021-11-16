@@ -5,13 +5,14 @@ import "@gnosis.pm/zodiac/contracts/guard/BaseGuard.sol";
 import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 
 contract ScopeGuard is FactoryFriendly, BaseGuard {
-    event SetTargetAllowed(address target, bool isAllowed);
-    event SetTargetScoped(address target, bool isScoped);
-    event SetDelegateCallAllowedOnTarget(address target, bool isAllowed);
+    event SetTargetAllowed(address target, bool allowed);
+    event SetTargetScoped(address target, bool scoped);
+    event SetSendAllowedOnTarget(address target, bool allowed);
+    event SetDelegateCallAllowedOnTarget(address target, bool allowed);
     event SetFunctionAllowedOnTarget(
         address target,
         bytes4 functionSig,
-        bool isAllowed
+        bool allowed
     );
     event ScopeGuardSetup(address indexed initiator, address indexed owner);
 
@@ -35,6 +36,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         bool allowed;
         bool scoped;
         bool delegateCallAllowed;
+        bool sendAllowed;
         mapping(bytes4 => bool) allowedFunctions;
     }
 
@@ -67,10 +69,22 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @dev Sets whether or not calls to an address should be scoped to specific function signatures.
     /// @notice Only callable by owner.
     /// @param target Address to be scoped/unscoped.
-    /// @param scope Bool to scope (true) or unscope (false) function calls on target.
-    function setScoped(address target, bool scope) public onlyOwner {
-        allowedTargets[target].scoped = scope;
+    /// @param scoped Bool to scope (true) or unscope (false) function calls on target.
+    function setScoped(address target, bool scoped) public onlyOwner {
+        allowedTargets[target].scoped = scoped;
         emit SetTargetScoped(target, allowedTargets[target].scoped);
+    }
+
+    /// @dev Sets whether or not a target can be sent to (incluces fallback/receive functions).
+    /// @notice Only callable by owner.
+    /// @param target Address to be allow/disallow sends to.
+    /// @param allow Bool to allow (true) or disallow (false) sends on target.
+    function setSendAllowedOnTarget(address target, bool allow)
+        public
+        onlyOwner
+    {
+        allowedTargets[target].sendAllowed = allow;
+        emit SetSendAllowedOnTarget(target, allowedTargets[target].sendAllowed);
     }
 
     /// @dev Sets whether or not a specific function signature should be allowed on a scoped target.
@@ -101,6 +115,12 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @param target Address to check.
     function isScoped(address target) public view returns (bool) {
         return (allowedTargets[target].scoped);
+    }
+
+    /// @dev Returns bool to indicate if allowed to send to a target.
+    /// @param target Address to check.
+    function isSendAllowed(address target) public view returns (bool) {
+        return (allowedTargets[target].sendAllowed);
     }
 
     /// @dev Returns bool to indicate if a function signature is allowed for a target address.
@@ -157,9 +177,9 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
                 "Target function is not allowed"
             );
         } else {
+            require(data.length == 0, "Function signature too short");
             require(
-                !allowedTargets[to].scoped ||
-                    allowedTargets[to].allowedFunctions[bytes4(0)],
+                !allowedTargets[to].scoped || allowedTargets[to].sendAllowed,
                 "Cannot send to this address"
             );
         }

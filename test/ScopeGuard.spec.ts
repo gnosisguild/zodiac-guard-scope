@@ -169,6 +169,28 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Target function is not allowed");
     });
 
+    it("should revert if scoped and transaction data is greater than 0 and less than 4", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
+      tx.value = 1;
+      await expect(
+        guard.checkTransaction(
+          tx.to,
+          tx.value,
+          0x123456,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures,
+          user1.address
+        )
+      ).to.be.revertedWith("Function signature too short");
+    });
+
     it("should revert if scoped and no transaction data is disallowed", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
@@ -192,7 +214,56 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Cannot send to this address");
     });
 
-    it("it should be callable by a avatar", async () => {
+    it("should revert if function sig is 0x00000000 and not explicitly approved", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
+      await guard.setSendAllowedOnTarget(avatar.address, false);
+      await guard.setAllowedFunction(avatar.address, "0x00000000", false);
+      tx.data = "0x00000000";
+      tx.value = 1;
+      await expect(
+        guard.checkTransaction(
+          tx.to,
+          tx.value,
+          tx.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures,
+          user1.address
+        )
+      ).to.be.revertedWith("Target function is not allowed");
+    });
+
+    it("should send to target is send is allowed", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setScoped(avatar.address, true);
+      await guard.setSendAllowedOnTarget(avatar.address, true);
+      tx.data = "0x";
+      tx.value = 1;
+      await expect(
+        guard.checkTransaction(
+          tx.to,
+          tx.value,
+          tx.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures,
+          user1.address
+        )
+      );
+    });
+
+    it("should be callable by an avatar", async () => {
       const { avatar, guard, tx } = await setupTests();
       expect(guard.setTargetAllowed(guard.address, true));
       tx.operation = 0;
@@ -339,6 +410,46 @@ describe("ScopeGuard", async () => {
     });
   });
 
+  describe("setSendAllowedOnTarget()", async () => {
+    it("should revert if caller is not owner", async () => {
+      const { guard } = await setupTests();
+      expect(
+        guard.connect(user2).setSendAllowedOnTarget(guard.address, true)
+      ).to.be.revertedWith("caller is not the owner");
+    });
+
+    it("should set sendAllowed to true for a target", async () => {
+      const { guard } = await setupTests();
+
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(guard.setSendAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetSendAllowedOnTarget")
+        .withArgs(guard.address, true);
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(true);
+    });
+
+    it("should set sendAllowed to false for a target", async () => {
+      const { guard } = await setupTests();
+
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(guard.setSendAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetSendAllowedOnTarget")
+        .withArgs(guard.address, true);
+      expect(guard.setSendAllowedOnTarget(guard.address, false))
+        .to.emit(guard, "SetSendAllowedOnTarget")
+        .withArgs(guard.address, false);
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+    });
+
+    it("should emit SetSendAllowedOnTarget(target, scoped)", async () => {
+      const { guard } = await setupTests();
+
+      expect(guard.setSendAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetSendAllowedOnTarget")
+        .withArgs(guard.address, true);
+    });
+  });
+
   describe("setAllowedFunction()", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
@@ -386,7 +497,7 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("isAllowedTarget", async () => {
+  describe("isAllowedTarget()", async () => {
     it("should return false if not set", async () => {
       const { avatar, guard } = await setupTests();
 
@@ -402,7 +513,7 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("isScoped", async () => {
+  describe("isScoped()", async () => {
     it("should return false if not set", async () => {
       const { avatar, guard } = await setupTests();
 
@@ -425,7 +536,30 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("isAllowedFunction", async () => {
+  describe("isSendAllowed()", async () => {
+    it("should return false if not set", async () => {
+      const { avatar, guard } = await setupTests();
+
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+    });
+
+    it("should return false if set to false", async () => {
+      const { guard } = await setupTests();
+
+      expect(guard.setSendAllowedOnTarget(guard.address, false));
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+    });
+
+    it("should return true if set to true", async () => {
+      const { guard } = await setupTests();
+
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(guard.setSendAllowedOnTarget(guard.address, true));
+      expect(await guard.isSendAllowed(guard.address)).to.be.equals(true);
+    });
+  });
+
+  describe("isAllowedFunction()", async () => {
     it("should return false if not set", async () => {
       const { avatar, guard } = await setupTests();
 
@@ -449,8 +583,8 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("isAllowedToDelegateCall", async () => {
-    it("should return false by default", async () => {
+  describe("isAllowedToDelegateCall()", async () => {
+    it("should return false if not set", async () => {
       const { avatar, guard } = await setupTests();
 
       expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
