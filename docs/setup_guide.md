@@ -81,7 +81,7 @@ To limit the scope of an address to specific function signatures, you must toggl
 yarn hardhat toggleScoped --network rinkeby --guard <scope_guard_address> --target <target_address>
 ```
 
-You can use this utitly to generate the function signature for specific functions.
+You can use this utility to generate the function signature for specific functions.
 
 ```bash
 yarn hardhat getFunctionSignature --function <escaped_function_sighash>
@@ -97,7 +97,7 @@ An exampe of an escaped function sighash is `balanceOf\(address\)`.
 
 #### Allow delegate calls to an addresses
 
-To allow the multisig owners to initiate delegate call trasnactions to an address, you must explicitly enable it for that target address.
+To allow the multisig owners to initiate delegate call transactions to an address, you must explicitly enable it for that target address.
 
 ```bash
 yarn hardhat allowDelegateCall --network rinkeby --guard <scope_guard_address> --target <target_address>
@@ -118,4 +118,4 @@ You can do this with a custom contract interaction via the [Gnosis Safe UI](http
 
 ### Deploy a master copy 
 
-The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the Scope Guard contract gets an update and the ones referred on the (zodiac repository)[https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts] should be used.
+The master copy contracts can be deployed through `yarn deploy` command. Note that this only should be done if the Scope Guard contract gets an update and the ones referred on the [zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) should be used.
