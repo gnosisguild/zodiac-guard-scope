@@ -7,7 +7,8 @@ import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 contract ScopeGuard is FactoryFriendly, BaseGuard {
     event SetTargetAllowed(address target, bool allowed);
     event SetTargetScoped(address target, bool scoped);
-    event SetSendAllowedOnTarget(address target, bool allowed);
+    event SetFallbackAllowedOnTarget(address target, bool allowed);
+    event SetValueAllowedOnTarget(address target, bool allowed);
     event SetDelegateCallAllowedOnTarget(address target, bool allowed);
     event SetFunctionAllowedOnTarget(
         address target,
@@ -36,7 +37,8 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         bool allowed;
         bool scoped;
         bool delegateCallAllowed;
-        bool sendAllowed;
+        bool fallbackAllowed;
+        bool valueAllowed;
         mapping(bytes4 => bool) allowedFunctions;
     }
 
@@ -79,12 +81,30 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @notice Only callable by owner.
     /// @param target Address to be allow/disallow sends to.
     /// @param allow Bool to allow (true) or disallow (false) sends on target.
-    function setSendAllowedOnTarget(address target, bool allow)
+    function setFallbackAllowedOnTarget(address target, bool allow)
         public
         onlyOwner
     {
-        allowedTargets[target].sendAllowed = allow;
-        emit SetSendAllowedOnTarget(target, allowedTargets[target].sendAllowed);
+        allowedTargets[target].fallbackAllowed = allow;
+        emit SetFallbackAllowedOnTarget(
+            target,
+            allowedTargets[target].fallbackAllowed
+        );
+    }
+
+    /// @dev Sets whether or not a target can be sent to (incluces fallback/receive functions).
+    /// @notice Only callable by owner.
+    /// @param target Address to be allow/disallow sends to.
+    /// @param allow Bool to allow (true) or disallow (false) sends on target.
+    function setValueAllowedOnTarget(address target, bool allow)
+        public
+        onlyOwner
+    {
+        allowedTargets[target].valueAllowed = allow;
+        emit SetValueAllowedOnTarget(
+            target,
+            allowedTargets[target].valueAllowed
+        );
     }
 
     /// @dev Sets whether or not a specific function signature should be allowed on a scoped target.
@@ -117,10 +137,16 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         return (allowedTargets[target].scoped);
     }
 
-    /// @dev Returns bool to indicate if allowed to send to a target.
+    /// @dev Returns bool to indicate if fallback is allowed to a target.
     /// @param target Address to check.
-    function isSendAllowed(address target) public view returns (bool) {
-        return (allowedTargets[target].sendAllowed);
+    function isfallbackAllowed(address target) public view returns (bool) {
+        return (allowedTargets[target].fallbackAllowed);
+    }
+
+    /// @dev Returns bool to indicate if ETH can be sent to a target.
+    /// @param target Address to check.
+    function isValueAllowed(address target) public view returns (bool) {
+        return (allowedTargets[target].valueAllowed);
     }
 
     /// @dev Returns bool to indicate if a function signature is allowed for a target address.
@@ -152,7 +178,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
     function checkTransaction(
         address to,
-        uint256,
+        uint256 value,
         bytes memory data,
         Enum.Operation operation,
         uint256,
@@ -170,6 +196,12 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
             "Delegate call not allowed to this address"
         );
         require(allowedTargets[to].allowed, "Target address is not allowed");
+        if (value > 0) {
+            require(
+                allowedTargets[to].valueAllowed,
+                "Cannot send ETH to this target"
+            );
+        }
         if (data.length >= 4) {
             require(
                 !allowedTargets[to].scoped ||
@@ -179,8 +211,9 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         } else {
             require(data.length == 0, "Function signature too short");
             require(
-                !allowedTargets[to].scoped || allowedTargets[to].sendAllowed,
-                "Cannot send to this address"
+                !allowedTargets[to].scoped ||
+                    allowedTargets[to].fallbackAllowed,
+                "Fallback not allowed for this address"
             );
         }
     }
