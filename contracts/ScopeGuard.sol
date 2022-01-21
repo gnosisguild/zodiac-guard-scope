@@ -70,23 +70,23 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
     mapping(address => Target) public targets;
 
-    /// @dev Allows calls made to an address.
+    /// @dev Allows all calls made to an address.
     /// @notice Only callable by owner.
-    /// @param target Address to be allowed/disallowed.
+    /// @param target Address to be allowed
     function allowTarget(address target) public onlyOwner {
         targets[target].clearance = Clearance.Target;
         emit AllowTarget(target);
     }
 
-    /// @dev Disallows calls made to an address.
+    /// @dev Disallows all calls made to an address.
     /// @notice Only callable by owner.
-    /// @param target Address to be allowed/disallowed.
+    /// @param target Address to be disallowed.
     function revokeTarget(address target) public onlyOwner {
         targets[target].clearance = Clearance.None;
         emit RevokeTarget(target);
     }
 
-    /// @dev Sets calls to an address scoped to specific function signatures.
+    /// @dev Scopes calls to an address, limited to specific function signatures.
     /// @notice Only callable by owner.
     /// @param target Address to be scoped.
     function scopeTarget(address target) public onlyOwner {
@@ -94,7 +94,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         emit ScopeTarget(target);
     }
 
-    /// @dev Set whether or not delegate calls and/or eth can be sent to a target.
+    /// @dev Sets whether or not delegate calls and/or eth can be sent to a target.
     /// @notice Only callable by owner.
     /// @param target Address to which delegate calls should be allowed/disallowed.
     /// @param options One of None, Send, DelegateCall or Both
@@ -167,7 +167,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         return targets[target].allowedFunctions[functionSig] == true;
     }
 
-    /// @dev Returns bool to indicate if fallback is allowed to a target.
+    /// @dev Returns bool to indicate if fallback is allowed on a target.
     /// @param target Address to check.
     function isFallbackAllowed(address target) public view returns (bool) {
         return targets[target].allowedFunctions[FALLBACK_FUNCTION_SIG] == true;
