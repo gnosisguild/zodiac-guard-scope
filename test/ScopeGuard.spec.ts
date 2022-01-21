@@ -364,11 +364,11 @@ describe('ScopeGuard', async () => {
 
     it('should allow a target', async () => {
       const { guard } = await setupTests();
-      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetAllowed(guard.address)).to.be.equals(false);
       await expect(guard.allowTarget(guard.address))
         .to.emit(guard, 'AllowTarget')
         .withArgs(guard.address);
-      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(true);
+      expect(await guard.isTargetAllowed(guard.address)).to.be.equals(true);
     });
 
     it('should emit AllowTarget(target)', async () => {
@@ -391,11 +391,11 @@ describe('ScopeGuard', async () => {
       const { guard } = await setupTests();
       await guard.allowTarget(guard.address);
 
-      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(true);
+      expect(await guard.isTargetAllowed(guard.address)).to.be.equals(true);
       await expect(guard.revokeTarget(guard.address))
         .to.emit(guard, 'RevokeTarget')
         .withArgs(guard.address);
-      expect(await guard.isAllowedTarget(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetAllowed(guard.address)).to.be.equals(false);
     });
 
     it('should emit RevokeTarget(target)', async () => {
@@ -417,23 +417,23 @@ describe('ScopeGuard', async () => {
     it('should set clearance Function for a target', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
       await expect(guard.scopeTarget(guard.address))
         .to.emit(guard, 'ScopeTarget')
         .withArgs(guard.address);
-      expect(await guard.isScoped(guard.address)).to.be.equals(true);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(true);
     });
 
     it('should set scoped to false for a target', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
       await expect(guard.scopeTarget(guard.address))
         .to.emit(guard, 'ScopeTarget')
         .withArgs(guard.address);
 
       await guard.revokeTarget(guard.address);
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
     });
 
     it('should emit ScopedTarget(target)', async () => {
@@ -455,9 +455,9 @@ describe('ScopeGuard', async () => {
       ).to.be.revertedWith('caller is not the owner');
     });
 
-    it('should allow delegate calls for a target', async () => {
+    it('should allow delegate calls to a target', async () => {
       const { guard } = await setupTests();
-      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         false
       );
       await expect(
@@ -465,14 +465,14 @@ describe('ScopeGuard', async () => {
       )
         .to.emit(guard, 'SetExecutionOptions')
         .withArgs(guard.address, ExecutionOptions.DELEGATE_CALL);
-      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         true
       );
     });
 
-    it('should disallow delegate calls for a target', async () => {
+    it('should disallow delegate calls to a target', async () => {
       const { guard } = await setupTests();
-      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         false
       );
       await expect(
@@ -485,7 +485,7 @@ describe('ScopeGuard', async () => {
       )
         .to.emit(guard, 'SetExecutionOptions')
         .withArgs(guard.address, ExecutionOptions.NONE);
-      expect(await guard.isAllowedToDelegateCall(guard.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         false
       );
     });
@@ -493,14 +493,53 @@ describe('ScopeGuard', async () => {
     it('should return true if target is allowed to delegate call', async () => {
       const { avatar, guard } = await setupTests();
 
-      expect(await guard.isAllowedToDelegateCall(avatar.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(avatar.address)).to.be.equals(
         false
       );
       await expect(guard.setExecutionOptions(avatar.address, 2));
 
-      expect(await guard.isAllowedToDelegateCall(avatar.address)).to.be.equals(
+      expect(await guard.canDelegateCallToTarget(avatar.address)).to.be.equals(
         true
       );
+    });
+
+    it('should allow sending to a target', async () => {
+      const { guard } = await setupTests();
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.SEND)
+      )
+        .to.emit(guard, 'SetExecutionOptions')
+        .withArgs(guard.address, ExecutionOptions.SEND);
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(true);
+    });
+
+    it('should disallow sending to a target', async () => {
+      const { guard } = await setupTests();
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.SEND)
+      );
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(true);
+
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.NONE)
+      );
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+    });
+
+    it('should return true if allowed to send to a target', async () => {
+      const { avatar, guard } = await setupTests();
+
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(avatar.address, ExecutionOptions.SEND)
+      );
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(true);
+      await expect(
+        guard.setExecutionOptions(avatar.address, ExecutionOptions.BOTH)
+      );
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(true);
     });
 
     it('should emit SetExecutionOptions(target, options)', async () => {
@@ -524,11 +563,11 @@ describe('ScopeGuard', async () => {
     it('should set fallbackAllowed to true for a target', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
       await expect(guard.scopeAllowFallback(guard.address))
         .to.emit(guard, 'ScopeAllowFunction')
         .withArgs(guard.address, '0x00000000');
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(true);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(true);
     });
 
     it('should emit ScopeAllowFunction(target, functionSig)', async () => {
@@ -551,14 +590,14 @@ describe('ScopeGuard', async () => {
     it('should set fallbackAllowed to false for a target', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
       await expect(guard.scopeAllowFallback(guard.address))
         .to.emit(guard, 'ScopeAllowFunction')
         .withArgs(guard.address, '0x00000000');
       await expect(guard.scopeRevokeFallback(guard.address))
         .to.emit(guard, 'ScopeRevokeFunction')
         .withArgs(guard.address, '0x00000000');
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
     });
 
     it('should emit ScopeRevokeFunction(target, functionSig)', async () => {
@@ -581,14 +620,14 @@ describe('ScopeGuard', async () => {
     it('should allow function for a target', async () => {
       const { guard } = await setupTests();
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(false);
 
       await expect(guard.scopeAllowFunction(guard.address, '0x12345678'))
         .to.emit(guard, 'ScopeAllowFunction')
         .withArgs(guard.address, '0x12345678');
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(true);
     });
 
@@ -611,7 +650,7 @@ describe('ScopeGuard', async () => {
     it('should disallow function for a target', async () => {
       const { guard } = await setupTests();
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(false);
 
       await guard.scopeAllowFunction(guard.address, '0x12345678');
@@ -620,7 +659,7 @@ describe('ScopeGuard', async () => {
         .to.emit(guard, 'ScopeRevokeFunction')
         .withArgs(guard.address, '0x12345678');
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(false);
     });
 
@@ -632,79 +671,79 @@ describe('ScopeGuard', async () => {
     });
   });
 
-  describe('isAllowedTarget()', async () => {
+  describe('isTargetAllowed()', async () => {
     it('should return false if not set', async () => {
       const { avatar, guard } = await setupTests();
 
-      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
+      expect(await guard.isTargetAllowed(avatar.address)).to.be.equals(false);
     });
 
     it('should return true if target is allowed', async () => {
       const { avatar, guard } = await setupTests();
 
-      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(false);
+      expect(await guard.isTargetAllowed(avatar.address)).to.be.equals(false);
       await guard.allowTarget(avatar.address);
-      expect(await guard.isAllowedTarget(avatar.address)).to.be.equals(true);
+      expect(await guard.isTargetAllowed(avatar.address)).to.be.equals(true);
     });
   });
 
-  describe('isScoped()', async () => {
+  describe('isTargetScoped()', async () => {
     it('should return false if not set', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
     });
 
     it('should return false if set to false', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
       await guard.scopeTarget(guard.address);
-      expect(await guard.isScoped(guard.address)).to.be.equals(true);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(true);
 
       await guard.revokeTarget(guard.address);
-      expect(await guard.isScoped(guard.address)).to.be.equals(false);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(false);
     });
 
     it('should return true if set to true', async () => {
       const { guard } = await setupTests();
 
       await guard.scopeTarget(guard.address);
-      expect(await guard.isScoped(guard.address)).to.be.equals(true);
+      expect(await guard.isTargetScoped(guard.address)).to.be.equals(true);
     });
   });
 
-  describe('isfallbackAllowed()', async () => {
+  describe('isFallbackAllowed()', async () => {
     it('should return false if not set', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
     });
 
     it('should return false if set to false', async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
       await guard.scopeAllowFallback(guard.address);
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(true);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(true);
       await guard.scopeRevokeFallback(guard.address);
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(false);
     });
 
     it('should return true if set to true', async () => {
       const { guard } = await setupTests();
 
       await guard.scopeAllowFallback(guard.address);
-      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(true);
+      expect(await guard.isFallbackAllowed(guard.address)).to.be.equals(true);
     });
   });
 
-  describe('isAllowedFunction()', async () => {
+  describe('isFunctionAllowed()', async () => {
     it('should return false if not set', async () => {
       const { avatar, guard } = await setupTests();
 
       expect(
-        await guard.isAllowedFunction(avatar.address, '0x12345678')
+        await guard.isFunctionAllowed(avatar.address, '0x12345678')
       ).to.be.equals(false);
     });
 
@@ -712,13 +751,13 @@ describe('ScopeGuard', async () => {
       const { guard } = await setupTests();
 
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(false);
       expect(guard.scopeAllowFunction(guard.address, '0x12345678'))
         .to.emit(guard, 'ScopeAllowFunction')
         .withArgs(guard.address, '0x12345678');
       expect(
-        await guard.isAllowedFunction(guard.address, '0x12345678')
+        await guard.isFunctionAllowed(guard.address, '0x12345678')
       ).to.be.equals(true);
     });
   });
