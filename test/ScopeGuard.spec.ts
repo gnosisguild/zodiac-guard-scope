@@ -455,7 +455,7 @@ describe('ScopeGuard', async () => {
       ).to.be.revertedWith('caller is not the owner');
     });
 
-    it('should allow delegate calls for a target', async () => {
+    it('should allow delegate calls to a target', async () => {
       const { guard } = await setupTests();
       expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         false
@@ -470,7 +470,7 @@ describe('ScopeGuard', async () => {
       );
     });
 
-    it('should disallow delegate calls for a target', async () => {
+    it('should disallow delegate calls to a target', async () => {
       const { guard } = await setupTests();
       expect(await guard.canDelegateCallToTarget(guard.address)).to.be.equals(
         false
@@ -501,6 +501,45 @@ describe('ScopeGuard', async () => {
       expect(await guard.canDelegateCallToTarget(avatar.address)).to.be.equals(
         true
       );
+    });
+
+    it('should allow sending to a target', async () => {
+      const { guard } = await setupTests();
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.SEND)
+      )
+        .to.emit(guard, 'SetExecutionOptions')
+        .withArgs(guard.address, ExecutionOptions.SEND);
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(true);
+    });
+
+    it('should disallow sending to a target', async () => {
+      const { guard } = await setupTests();
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.SEND)
+      );
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(true);
+
+      await expect(
+        guard.setExecutionOptions(guard.address, ExecutionOptions.NONE)
+      );
+      expect(await guard.canSendToTarget(guard.address)).to.be.equals(false);
+    });
+
+    it('should return true if allowed to send to a target', async () => {
+      const { avatar, guard } = await setupTests();
+
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(false);
+      await expect(
+        guard.setExecutionOptions(avatar.address, ExecutionOptions.SEND)
+      );
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(true);
+      await expect(
+        guard.setExecutionOptions(avatar.address, ExecutionOptions.BOTH)
+      );
+      expect(await guard.canSendToTarget(avatar.address)).to.be.equals(true);
     });
 
     it('should emit SetExecutionOptions(target, options)', async () => {
