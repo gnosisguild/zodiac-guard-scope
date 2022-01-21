@@ -130,54 +130,60 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         emit ScopeRevokeFunction(target, functionSig);
     }
 
+    /// @dev Allows the fallback function on a scoped target.
+    /// @notice Only callable by owner.
+    /// @param target Scoped address on which a function signature should be allowed
     function scopeAllowFallback(address target) public onlyOwner {
         scopeAllowFunction(target, FALLBACK_FUNCTION_SIG);
     }
 
+    /// @dev Disallows the fallback function on a scoped target.
+    /// @notice Only callable by owner.
+    /// @param target Scoped address on which a function signature should be disallowed
     function scopeRevokeFallback(address target) public onlyOwner {
         scopeRevokeFunction(target, FALLBACK_FUNCTION_SIG);
     }
 
     /// @dev Returns bool to indicate if an address is an allowed target.
     /// @param target Address to check.
-    function isAllowedTarget(address target) public view returns (bool) {
+    function isTargetAllowed(address target) public view returns (bool) {
         return targets[target].clearance == Clearance.Target;
     }
 
     /// @dev Returns bool to indicate if an address is scoped.
     /// @param target Address to check.
-    function isScoped(address target) public view returns (bool) {
+    function isTargetScoped(address target) public view returns (bool) {
         return targets[target].clearance == Clearance.Function;
-    }
-
-    /// @dev Returns bool to indicate if fallback is allowed to a target.
-    /// @param target Address to check.
-    function isfallbackAllowed(address target) public view returns (bool) {
-        return targets[target].allowedFunctions[FALLBACK_FUNCTION_SIG];
-    }
-
-    /// @dev Returns bool to indicate if ETH can be sent to a target.
-    /// @param target Address to check.
-    function isValueAllowed(address target) public view returns (bool) {
-        return
-            targets[target].options == ExecutionOptions.Send ||
-            targets[target].options == ExecutionOptions.Both;
     }
 
     /// @dev Returns bool to indicate if a function signature is allowed for a target address.
     /// @param target Address to check.
     /// @param functionSig Signature to check.
-    function isAllowedFunction(address target, bytes4 functionSig)
+    function isFunctionAllowed(address target, bytes4 functionSig)
         public
         view
         returns (bool)
     {
-        return targets[target].allowedFunctions[functionSig];
+        return targets[target].allowedFunctions[functionSig] == true;
+    }
+
+    /// @dev Returns bool to indicate if fallback is allowed to a target.
+    /// @param target Address to check.
+    function isFallbackAllowed(address target) public view returns (bool) {
+        return targets[target].allowedFunctions[FALLBACK_FUNCTION_SIG] == true;
+    }
+
+    /// @dev Returns bool to indicate if ETH can be sent to a target.
+    /// @param target Address to check.
+    function canSendToTarget(address target) public view returns (bool) {
+        return
+            targets[target].options == ExecutionOptions.Send ||
+            targets[target].options == ExecutionOptions.Both;
     }
 
     /// @dev Returns bool to indicate if delegate calls are allowed to a target address.
     /// @param target Address to check.
-    function isAllowedToDelegateCall(address target)
+    function canDelegateCallToTarget(address target)
         public
         view
         returns (bool)
@@ -213,7 +219,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
         Target storage target = targets[to];
 
-         if (target.clearance == Clearance.None) {
+        if (target.clearance == Clearance.None) {
             revert TargetAddressNotAllowed();
         }
 
