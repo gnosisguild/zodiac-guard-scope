@@ -27,9 +27,6 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     event ScopeAllowFunction(address target, bytes4 functionSig);
     event ScopeRevokeFunction(address target, bytes4 functionSig);
 
-    event ScopeAllowFallback(address target, bytes4 functionSig);
-    event ScopeRevokeFallback(address target, bytes4 functionSig);
-
     event ScopeGuardSetup(address indexed initiator, address indexed owner);
 
     /// Function signature too short
