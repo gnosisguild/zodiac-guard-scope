@@ -173,7 +173,6 @@ describe("ScopeGuard", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
       await guard.setScoped(avatar.address, true);
-      tx.value = 1;
       await expect(
         guard.checkTransaction(
           tx.to,
@@ -191,12 +190,11 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Function signature too short");
     });
 
-    it("should revert if scoped and no transaction data is disallowed", async () => {
+    it("should revert if scoped and empty transaction data is disallowed", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
       await guard.setScoped(avatar.address, true);
       tx.data = "0x";
-      tx.value = 1;
       await expect(
         guard.checkTransaction(
           tx.to,
@@ -211,17 +209,16 @@ describe("ScopeGuard", async () => {
           tx.signatures,
           user1.address
         )
-      ).to.be.revertedWith("Cannot send to this address");
+      ).to.be.revertedWith("Fallback not allowed for this address");
     });
 
     it("should revert if function sig is 0x00000000 and not explicitly approved", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
       await guard.setScoped(avatar.address, true);
-      await guard.setSendAllowedOnTarget(avatar.address, false);
+      await guard.setFallbackAllowedOnTarget(avatar.address, false);
       await guard.setAllowedFunction(avatar.address, "0x00000000", false);
       tx.data = "0x00000000";
-      tx.value = 1;
       await expect(
         guard.checkTransaction(
           tx.to,
@@ -239,15 +236,36 @@ describe("ScopeGuard", async () => {
       ).to.be.revertedWith("Target function is not allowed");
     });
 
-    it("should send to target is send is allowed", async () => {
+    it("should revert if value is greater than zero and value is not allowed", async () => {
       const { avatar, guard, tx } = await setupTests();
       await guard.setTargetAllowed(avatar.address, true);
-      await guard.setScoped(avatar.address, true);
-      await guard.setSendAllowedOnTarget(avatar.address, true);
-      tx.data = "0x";
+      tx.data = "0x12345678";
       tx.value = 1;
       await expect(
         guard.checkTransaction(
+          tx.to,
+          tx.value,
+          tx.data,
+          tx.operation,
+          tx.avatarTxGas,
+          tx.baseGas,
+          tx.gasPrice,
+          tx.gasToken,
+          tx.refundReceiver,
+          tx.signatures,
+          user1.address
+        )
+      ).to.be.revertedWith("Cannot send ETH to this target");
+    });
+
+    it("should send ETH to target if value is allowed", async () => {
+      const { avatar, guard, tx } = await setupTests();
+      await guard.setTargetAllowed(avatar.address, true);
+      await guard.setValueAllowedOnTarget(avatar.address, true);
+      tx.data = "0x12345678";
+      tx.value = 1;
+      expect(
+        await guard.checkTransaction(
           tx.to,
           tx.value,
           tx.data,
@@ -410,42 +428,42 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("setSendAllowedOnTarget()", async () => {
+  describe("setFallbackAllowedOnTarget()", async () => {
     it("should revert if caller is not owner", async () => {
       const { guard } = await setupTests();
       expect(
-        guard.connect(user2).setSendAllowedOnTarget(guard.address, true)
+        guard.connect(user2).setFallbackAllowedOnTarget(guard.address, true)
       ).to.be.revertedWith("caller is not the owner");
     });
 
-    it("should set sendAllowed to true for a target", async () => {
+    it("should set fallbackAllowed to true for a target", async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
-      expect(guard.setSendAllowedOnTarget(guard.address, true))
-        .to.emit(guard, "SetSendAllowedOnTarget")
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      await expect(guard.setFallbackAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetFallbackAllowedOnTarget")
         .withArgs(guard.address, true);
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(true);
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(true);
     });
 
-    it("should set sendAllowed to false for a target", async () => {
+    it("should set fallbackAllowed to false for a target", async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
-      expect(guard.setSendAllowedOnTarget(guard.address, true))
-        .to.emit(guard, "SetSendAllowedOnTarget")
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      await expect(guard.setFallbackAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetFallbackAllowedOnTarget")
         .withArgs(guard.address, true);
-      expect(guard.setSendAllowedOnTarget(guard.address, false))
-        .to.emit(guard, "SetSendAllowedOnTarget")
+      await expect(guard.setFallbackAllowedOnTarget(guard.address, false))
+        .to.emit(guard, "SetFallbackAllowedOnTarget")
         .withArgs(guard.address, false);
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
     });
 
-    it("should emit SetSendAllowedOnTarget(target, scoped)", async () => {
+    it("should emit setFallbackAllowedOnTarget(target, scoped)", async () => {
       const { guard } = await setupTests();
 
-      expect(guard.setSendAllowedOnTarget(guard.address, true))
-        .to.emit(guard, "SetSendAllowedOnTarget")
+      await expect(guard.setFallbackAllowedOnTarget(guard.address, true))
+        .to.emit(guard, "SetFallbackAllowedOnTarget")
         .withArgs(guard.address, true);
     });
   });
@@ -536,26 +554,26 @@ describe("ScopeGuard", async () => {
     });
   });
 
-  describe("isSendAllowed()", async () => {
+  describe("isfallbackAllowed()", async () => {
     it("should return false if not set", async () => {
       const { avatar, guard } = await setupTests();
 
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
     });
 
     it("should return false if set to false", async () => {
       const { guard } = await setupTests();
 
-      expect(guard.setSendAllowedOnTarget(guard.address, false));
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
+      expect(guard.setFallbackAllowedOnTarget(guard.address, false));
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
     });
 
     it("should return true if set to true", async () => {
       const { guard } = await setupTests();
 
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(false);
-      expect(guard.setSendAllowedOnTarget(guard.address, true));
-      expect(await guard.isSendAllowed(guard.address)).to.be.equals(true);
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(false);
+      expect(guard.setFallbackAllowedOnTarget(guard.address, true));
+      expect(await guard.isfallbackAllowed(guard.address)).to.be.equals(true);
     });
   });
 
