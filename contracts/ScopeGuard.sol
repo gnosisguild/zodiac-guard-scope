@@ -18,7 +18,7 @@ enum ExecutionOptions {
 }
 
 contract ScopeGuard is FactoryFriendly, BaseGuard {
-    event AllowedTarget(address target);
+    event AllowTarget(address target);
     event RevokeTarget(address target);
     event ScopeTarget(address target);
 
@@ -49,8 +49,6 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
     bytes4 internal constant FALLBACK_FUNCTION_SIG = 0x00000000;
 
-
-
     constructor(address _owner) {
         bytes memory initializeParams = abi.encode(_owner);
         setUp(initializeParams);
@@ -80,7 +78,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @param target Address to be allowed/disallowed.
     function allowTarget(address target) public onlyOwner {
         targets[target].clearance = Clearance.Target;
-        emit AllowedTarget(target);
+        emit AllowTarget(target);
     }
 
     /// @dev Disallows calls made to an address.
