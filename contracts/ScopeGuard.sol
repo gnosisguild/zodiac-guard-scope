@@ -22,13 +22,15 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     event RevokeTarget(address target);
     event ScopeTarget(address target);
 
-    event SetTargetExecutionOptions(address target, ExecutionOptions options);
+    event SetExecutionOptions(address target, ExecutionOptions options);
 
     event ScopeAllowFunction(address target, bytes4 functionSig);
     event ScopeRevokeFunction(address target, bytes4 functionSig);
 
     event ScopeAllowFallback(address target, bytes4 functionSig);
     event ScopeRevokeFallback(address target, bytes4 functionSig);
+
+    event ScopeGuardSetup(address indexed initiator, address indexed owner);
 
     /// Function signature too short
     error FunctionSignatureTooShort();
@@ -47,7 +49,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
     bytes4 internal constant FALLBACK_FUNCTION_SIG = 0x00000000;
 
-    event ScopeGuardSetup(address indexed initiator, address indexed owner);
+
 
     constructor(address _owner) {
         bytes memory initializeParams = abi.encode(_owner);
@@ -101,12 +103,12 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @notice Only callable by owner.
     /// @param target Address to which delegate calls should be allowed/disallowed.
     /// @param options One of None, Send, DelegateCall or Both
-    function setTargetExecutionOptions(address target, ExecutionOptions options)
+    function setExecutionOptions(address target, ExecutionOptions options)
         public
         onlyOwner
     {
         targets[target].options = options;
-        emit SetTargetExecutionOptions(target, options);
+        emit SetExecutionOptions(target, options);
     }
 
     /// @dev Allows a specific function signature on a scoped target.
