@@ -111,6 +111,7 @@ describe('ScopeGuard', async () => {
     it('should revert delegate call if delegate calls are not allowed to target', async () => {
       const { guard, tx } = await setupTests();
       tx.operation = 1;
+      await guard.allowTarget(tx.to);
       await expect(
         guard.checkTransaction(
           tx.to,

@@ -213,6 +213,10 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
 
         Target storage target = targets[to];
 
+         if (target.clearance == Clearance.None) {
+            revert TargetAddressNotAllowed();
+        }
+
         if (
             value > 0 &&
             target.options != ExecutionOptions.Send &&
@@ -229,10 +233,6 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         ) {
             // isDelegateCall && !canDelegateCall
             revert DelegateCallNotAllowed();
-        }
-
-        if (target.clearance == Clearance.None) {
-            revert TargetAddressNotAllowed();
         }
 
         if (target.clearance == Clearance.Target) {
