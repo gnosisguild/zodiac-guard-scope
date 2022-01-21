@@ -91,7 +91,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     /// @param target Address to be scoped.
     function scopeTarget(address target) public onlyOwner {
         targets[target].clearance = Clearance.Function;
-        emit RevokeTarget(target);
+        emit ScopeTarget(target);
     }
 
     /// @dev Set whether or not delegate calls and/or eth can be sent to a target.
@@ -127,7 +127,7 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         onlyOwner
     {
         targets[target].allowedFunctions[functionSig] = false;
-        emit ScopeAllowFunction(target, functionSig);
+        emit ScopeRevokeFunction(target, functionSig);
     }
 
     function scopeAllowFallback(address target) public onlyOwner {
