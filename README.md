@@ -2,12 +2,13 @@
 
 [![Build Status](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-guard-scope/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-guard-scope/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-guard-scope)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/gnosis/CODE_OF_CONDUCT)
 
-A transaction guard that allows the owner to limit a Gnosis Safe's multisig owners to calling specific function signatures on specific contracts.
+Attaching a scope guard to an Avatar or Mod, allows one to limit the contracts and functions that may be called (by the multisig owners in the case of a Gnosis Safe, or by the mod if enable of a mod).
 
 ### Features
 
-- Set specific addresses that the multisig owners can call
+- Set specific addresses that the avatar can be triggered to call
 - Scope the functions that are allowed to be called on specific addresses
 - Allow/disallow multisig transaction to use delegate calls to specific addresses
 
@@ -19,13 +20,13 @@ A transaction guard that allows the owner to limit a Gnosis Safe's multisig owne
 
 ### Warnings ⚠️
 
-Before you enable your ScopeGuard, please make sure you have setup the ScopeGuard fully to enable each of the addresses and functions you wish the multisig owners to be able to call.
+Before you enable your ScopeGuard, please make sure you have setup the ScopeGuard fully to enable each of the addresses and functions you wish for the multisig owners or mod to be able to call.
 
 Best practice is to enable another account that you control as a module to your Safe before enabling your ScopeGuard.
 
 Some specific things you should be aware of:
 
-- Enabling a ScopeGuard can brick your Safe, making it unusable and rendering any funds inaccessible.
+- Enabling a ScopeGuard can brick your Avatar, making it unusable and rendering any funds inaccessible.
   Once enabled on your Safe, your ScopeGuard will revert any transactions to addresses or functions that have not been explicitly allowed.
 - By default it is not possible to use delegate call with any contract once your ScopeGuard is enabled.
   This means if the ScopeGuard is added without allowing delegate calls for the `MultiSendCallOnly` contract, there might be issues when using some Safe apps via the Safe web interface.

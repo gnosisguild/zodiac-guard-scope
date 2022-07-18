@@ -1,4 +1,4 @@
-name: Guard
+name: tests
 on: [push]
 
 jobs:

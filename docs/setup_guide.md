@@ -33,7 +33,7 @@ For the hardhat tasks to work the environment needs to be properly configured. S
 
 ## Deploying the ScopeGuard
 
-The guard only has one attribute which is:
+The scope guard has one variable which must be set:
 - Owner: address that can call setter functions 
 
 Hardhat tasks can be used to deploy a ScopeGuard instance. There are two different ways to deploy it, the first one is through a normal deployment and passing arguments to the constructor (without the `proxied` flag), or, deploy the Module through a [Minimal Proxy Factory](https://eips.ethereum.org/EIPS/eip-1167) and save on gas costs (without the `proxied` flag) - The master copy and factory address can be found in the [zodiac repository](https://github.com/gnosis/zodiac/blob/master/src/factory/constants.ts) and these are the addresses that are going to be used when deploying the module through factory.
@@ -81,7 +81,7 @@ To limit the scope of an address to specific function signatures, you must toggl
 yarn hardhat toggleScoped --network rinkeby --guard <scope_guard_address> --target <target_address>
 ```
 
-You can use this utitly to generate the function signature for specific functions.
+You can use this utility to generate the function signature for specific functions.
 
 ```bash
 yarn hardhat getFunctionSignature --function <escaped_function_sighash>
@@ -93,11 +93,11 @@ Then set allow the specific function signature.
 yarn hardhat allowFunction --network rinkeby --guard <scope_guard_address> --target <target_address> --sig <function_signature>
 ```
 
-An exampe of an escaped function sighash is `balanceOf\(address\)`.
+An example of an escaped function sighash is `balanceOf\(address\)`.
 
 #### Allow delegate calls to an addresses
 
-To allow the multisig owners to initiate delegate call trasnactions to an address, you must explicitly enable it for that target address.
+To allow the multisig owners to initiate delegate call transactions to an address, you must explicitly enable it for that target address.
 
 ```bash
 yarn hardhat allowDelegateCall --network rinkeby --guard <scope_guard_address> --target <target_address>
