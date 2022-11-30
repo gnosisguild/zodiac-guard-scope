@@ -4,18 +4,47 @@ pragma solidity ^0.8.6;
 import "@gnosis.pm/zodiac/contracts/guard/BaseGuard.sol";
 import "@gnosis.pm/zodiac/contracts/factory/FactoryFriendly.sol";
 
+enum Clearance {
+    None,
+    Target,
+    Function
+}
+
+enum ExecutionOptions {
+    None,
+    Send,
+    DelegateCall,
+    Both
+}
+
 contract ScopeGuard is FactoryFriendly, BaseGuard {
-    event SetTargetAllowed(address target, bool allowed);
-    event SetTargetScoped(address target, bool scoped);
-    event SetFallbackAllowedOnTarget(address target, bool allowed);
-    event SetValueAllowedOnTarget(address target, bool allowed);
-    event SetDelegateCallAllowedOnTarget(address target, bool allowed);
-    event SetFunctionAllowedOnTarget(
-        address target,
-        bytes4 functionSig,
-        bool allowed
-    );
+    event AllowTarget(address target);
+    event RevokeTarget(address target);
+    event ScopeTarget(address target);
+
+    event SetExecutionOptions(address target, ExecutionOptions options);
+
+    event ScopeAllowFunction(address target, bytes4 functionSig);
+    event ScopeRevokeFunction(address target, bytes4 functionSig);
+
     event ScopeGuardSetup(address indexed initiator, address indexed owner);
+
+    /// Function signature too short
+    error FunctionSignatureTooShort();
+
+    /// Role not allowed to send to target address
+    error SendNotAllowed();
+
+    /// Role not allowed to delegate call to target address
+    error DelegateCallNotAllowed();
+
+    /// Role not allowed to call target address
+    error TargetAddressNotAllowed();
+
+    /// Role not allowed to call this function on target address
+    error FunctionNotAllowed();
+
+    bytes4 internal constant FALLBACK_FUNCTION_SIG = 0x00000000;
 
     constructor(address _owner) {
         bytes memory initializeParams = abi.encode(_owner);
@@ -34,140 +63,134 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
     }
 
     struct Target {
-        bool allowed;
-        bool scoped;
-        bool delegateCallAllowed;
-        bool fallbackAllowed;
-        bool valueAllowed;
+        Clearance clearance;
+        ExecutionOptions options;
         mapping(bytes4 => bool) allowedFunctions;
     }
 
-    mapping(address => Target) public allowedTargets;
+    mapping(address => Target) public targets;
 
-    /// @dev Set whether or not calls can be made to an address.
+    /// @dev Allows all calls made to an address.
     /// @notice Only callable by owner.
-    /// @param target Address to be allowed/disallowed.
-    /// @param allow Bool to allow (true) or disallow (false) calls to target.
-    function setTargetAllowed(address target, bool allow) public onlyOwner {
-        allowedTargets[target].allowed = allow;
-        emit SetTargetAllowed(target, allowedTargets[target].allowed);
+    /// @param target Address to be allowed
+    function allowTarget(address target) public onlyOwner {
+        targets[target].clearance = Clearance.Target;
+        emit AllowTarget(target);
     }
 
-    /// @dev Set whether or not delegate calls can be made to a target.
+    /// @dev Disallows all calls made to an address.
+    /// @notice Only callable by owner.
+    /// @param target Address to be disallowed.
+    function revokeTarget(address target) public onlyOwner {
+        targets[target].clearance = Clearance.None;
+        emit RevokeTarget(target);
+    }
+
+    /// @dev Scopes calls to an address, limited to specific function signatures.
+    /// @notice Only callable by owner.
+    /// @param target Address to be scoped.
+    function scopeTarget(address target) public onlyOwner {
+        targets[target].clearance = Clearance.Function;
+        emit ScopeTarget(target);
+    }
+
+    /// @dev Sets whether or not delegate calls and/or eth can be sent to a target.
     /// @notice Only callable by owner.
     /// @param target Address to which delegate calls should be allowed/disallowed.
-    /// @param allow Bool to allow (true) or disallow (false) delegate calls to target.
-    function setDelegateCallAllowedOnTarget(address target, bool allow)
+    /// @param options One of None, Send, DelegateCall or Both
+    function setExecutionOptions(address target, ExecutionOptions options)
         public
         onlyOwner
     {
-        allowedTargets[target].delegateCallAllowed = allow;
-        emit SetDelegateCallAllowedOnTarget(
-            target,
-            allowedTargets[target].delegateCallAllowed
-        );
+        targets[target].options = options;
+        emit SetExecutionOptions(target, options);
     }
 
-    /// @dev Sets whether or not calls to an address should be scoped to specific function signatures.
+    /// @dev Allows a specific function signature on a scoped target.
     /// @notice Only callable by owner.
-    /// @param target Address to be scoped/unscoped.
-    /// @param scoped Bool to scope (true) or unscope (false) function calls on target.
-    function setScoped(address target, bool scoped) public onlyOwner {
-        allowedTargets[target].scoped = scoped;
-        emit SetTargetScoped(target, allowedTargets[target].scoped);
-    }
-
-    /// @dev Sets whether or not a target can be sent to (incluces fallback/receive functions).
-    /// @notice Only callable by owner.
-    /// @param target Address to be allow/disallow sends to.
-    /// @param allow Bool to allow (true) or disallow (false) sends on target.
-    function setFallbackAllowedOnTarget(address target, bool allow)
+    /// @param target Scoped address on which a function signature should be allowed
+    /// @param functionSig Function signature to be allowed
+    function scopeAllowFunction(address target, bytes4 functionSig)
         public
         onlyOwner
     {
-        allowedTargets[target].fallbackAllowed = allow;
-        emit SetFallbackAllowedOnTarget(
-            target,
-            allowedTargets[target].fallbackAllowed
-        );
+        targets[target].allowedFunctions[functionSig] = true;
+        emit ScopeAllowFunction(target, functionSig);
     }
 
-    /// @dev Sets whether or not a target can be sent to (incluces fallback/receive functions).
+    /// @dev Disallows a specific function signature on a scoped target.
     /// @notice Only callable by owner.
-    /// @param target Address to be allow/disallow sends to.
-    /// @param allow Bool to allow (true) or disallow (false) sends on target.
-    function setValueAllowedOnTarget(address target, bool allow)
+    /// @param target Scoped address on which a function signature should be disallowed
+    /// @param functionSig Function signature to be disallowed
+    function scopeRevokeFunction(address target, bytes4 functionSig)
         public
         onlyOwner
     {
-        allowedTargets[target].valueAllowed = allow;
-        emit SetValueAllowedOnTarget(
-            target,
-            allowedTargets[target].valueAllowed
-        );
+        targets[target].allowedFunctions[functionSig] = false;
+        emit ScopeRevokeFunction(target, functionSig);
     }
 
-    /// @dev Sets whether or not a specific function signature should be allowed on a scoped target.
+    /// @dev Allows the fallback function on a scoped target.
     /// @notice Only callable by owner.
-    /// @param target Scoped address on which a function signature should be allowed/disallowed.
-    /// @param functionSig Function signature to be allowed/disallowed.
-    /// @param allow Bool to allow (true) or disallow (false) calls a function signature on target.
-    function setAllowedFunction(
-        address target,
-        bytes4 functionSig,
-        bool allow
-    ) public onlyOwner {
-        allowedTargets[target].allowedFunctions[functionSig] = allow;
-        emit SetFunctionAllowedOnTarget(
-            target,
-            functionSig,
-            allowedTargets[target].allowedFunctions[functionSig]
-        );
+    /// @param target Scoped address on which a function signature should be allowed
+    function scopeAllowFallback(address target) public onlyOwner {
+        scopeAllowFunction(target, FALLBACK_FUNCTION_SIG);
+    }
+
+    /// @dev Disallows the fallback function on a scoped target.
+    /// @notice Only callable by owner.
+    /// @param target Scoped address on which a function signature should be disallowed
+    function scopeRevokeFallback(address target) public onlyOwner {
+        scopeRevokeFunction(target, FALLBACK_FUNCTION_SIG);
     }
 
     /// @dev Returns bool to indicate if an address is an allowed target.
     /// @param target Address to check.
-    function isAllowedTarget(address target) public view returns (bool) {
-        return (allowedTargets[target].allowed);
+    function isTargetAllowed(address target) public view returns (bool) {
+        return targets[target].clearance == Clearance.Target;
     }
 
     /// @dev Returns bool to indicate if an address is scoped.
     /// @param target Address to check.
-    function isScoped(address target) public view returns (bool) {
-        return (allowedTargets[target].scoped);
-    }
-
-    /// @dev Returns bool to indicate if fallback is allowed to a target.
-    /// @param target Address to check.
-    function isfallbackAllowed(address target) public view returns (bool) {
-        return (allowedTargets[target].fallbackAllowed);
-    }
-
-    /// @dev Returns bool to indicate if ETH can be sent to a target.
-    /// @param target Address to check.
-    function isValueAllowed(address target) public view returns (bool) {
-        return (allowedTargets[target].valueAllowed);
+    function isTargetScoped(address target) public view returns (bool) {
+        return targets[target].clearance == Clearance.Function;
     }
 
     /// @dev Returns bool to indicate if a function signature is allowed for a target address.
     /// @param target Address to check.
     /// @param functionSig Signature to check.
-    function isAllowedFunction(address target, bytes4 functionSig)
+    function isFunctionAllowed(address target, bytes4 functionSig)
         public
         view
         returns (bool)
     {
-        return (allowedTargets[target].allowedFunctions[functionSig]);
+        return targets[target].allowedFunctions[functionSig] == true;
+    }
+
+    /// @dev Returns bool to indicate if fallback is allowed on a target.
+    /// @param target Address to check.
+    function isFallbackAllowed(address target) public view returns (bool) {
+        return targets[target].allowedFunctions[FALLBACK_FUNCTION_SIG] == true;
+    }
+
+    /// @dev Returns bool to indicate if ETH can be sent to a target.
+    /// @param target Address to check.
+    function canSendToTarget(address target) public view returns (bool) {
+        return
+            targets[target].options == ExecutionOptions.Send ||
+            targets[target].options == ExecutionOptions.Both;
     }
 
     /// @dev Returns bool to indicate if delegate calls are allowed to a target address.
     /// @param target Address to check.
-    function isAllowedToDelegateCall(address target)
+    function canDelegateCallToTarget(address target)
         public
         view
         returns (bool)
     {
-        return (allowedTargets[target].delegateCallAllowed);
+        return
+            targets[target].options == ExecutionOptions.DelegateCall ||
+            targets[target].options == ExecutionOptions.Both;
     }
 
     // solhint-disallow-next-line payable-fallback
@@ -190,32 +213,46 @@ contract ScopeGuard is FactoryFriendly, BaseGuard {
         bytes memory,
         address
     ) external view override {
-        require(
-            operation != Enum.Operation.DelegateCall ||
-                allowedTargets[to].delegateCallAllowed,
-            "Delegate call not allowed to this address"
-        );
-        require(allowedTargets[to].allowed, "Target address is not allowed");
-        if (value > 0) {
-            require(
-                allowedTargets[to].valueAllowed,
-                "Cannot send ETH to this target"
-            );
+        if (data.length != 0 && data.length < 4) {
+            revert FunctionSignatureTooShort();
         }
-        if (data.length >= 4) {
-            require(
-                !allowedTargets[to].scoped ||
-                    allowedTargets[to].allowedFunctions[bytes4(data)],
-                "Target function is not allowed"
-            );
-        } else {
-            require(data.length == 0, "Function signature too short");
-            require(
-                !allowedTargets[to].scoped ||
-                    allowedTargets[to].fallbackAllowed,
-                "Fallback not allowed for this address"
-            );
+
+        Target storage target = targets[to];
+
+        if (target.clearance == Clearance.None) {
+            revert TargetAddressNotAllowed();
         }
+
+        if (
+            value > 0 &&
+            target.options != ExecutionOptions.Send &&
+            target.options != ExecutionOptions.Both
+        ) {
+            // isSend && !canSend
+            revert SendNotAllowed();
+        }
+
+        if (
+            operation == Enum.Operation.DelegateCall &&
+            target.options != ExecutionOptions.DelegateCall &&
+            target.options != ExecutionOptions.Both
+        ) {
+            // isDelegateCall && !canDelegateCall
+            revert DelegateCallNotAllowed();
+        }
+
+        if (target.clearance == Clearance.Target) {
+            return;
+        }
+
+        if (target.clearance == Clearance.Function) {
+            if (targets[to].allowedFunctions[bytes4(data)] == false) {
+                revert FunctionNotAllowed();
+            }
+            return;
+        }
+
+        assert(false);
     }
 
     function checkAfterExecution(bytes32, bool) external view override {}
